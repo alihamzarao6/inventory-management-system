@@ -1,7 +1,6 @@
 "use client";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/redux/slices/auth";
-import { CustomWallet } from "@/components/shared/custom-wallet/CustomWallet";
 
 const Header = () => {
   const user = useSelector(selectCurrentUser);
@@ -22,7 +21,6 @@ const Header = () => {
         <div className="flex items-center gap-4">
           {user && (
             <>
-              <CustomWallet />
               <span className="text-lg font-medium hidden lg:block whitespace-nowrap text-[var(--text-primary)]">
                 {user.userName}
               </span>

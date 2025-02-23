@@ -1,7 +1,9 @@
+"use client"
+import Dashboard from "@/components/Dashboard"
 
 const HomePage = () => {
   return (
-    <div>HomePage</div>
+    <><Dashboard /></>
   )
 }
 
