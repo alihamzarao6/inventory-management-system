@@ -33,7 +33,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #759C45;
+  background: #999593;
   /* Thumb color */
   border-radius: 0.75rem;
   /* Rounded corners */
@@ -41,6 +41,6 @@ body {
 
 /* For Firefox */
 * {
-  scrollbar-color: #759C45 transparent;
+  scrollbar-color: #999593 transparent;
   scrollbar-width: thin;
 }

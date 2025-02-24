@@ -41,7 +41,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black text-white h-16 flex items-center px-4 justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 text-white h-16 flex items-center px-4 justify-between">
         <div className="flex items-center gap-4">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>

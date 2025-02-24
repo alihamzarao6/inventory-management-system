@@ -28,13 +28,13 @@ const locationSchema = z.object({
 type LocationFormData = z.infer<typeof locationSchema>;
 
 interface LocationDialogProps {
-  type: "warehouse" | "store";
+  type: "Warehouse" | "Store";
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: LocationFormData) => void;
 }
 
-export const LocationDialog: React.FC<LocationDialogProps> = ({
+export const AddLocationDialog: React.FC<LocationDialogProps> = ({
   type,
   open,
   onOpenChange,
@@ -74,7 +74,7 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-white p-0 overflow-hidden flex flex-col h-[90vh]">
         <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle className="text-2xl font-semibold text-gray-900">
+          <DialogTitle className="text-2xl font-semibold text-gray-900 capitalize">
             Add New {type}
           </DialogTitle>
         </DialogHeader>
@@ -232,7 +232,7 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
           <Button
             type="submit"
             form="locationForm"
-            className="w-full bg-[#0f172a] hover:bg-[#1e293b] text-white py-2.5 rounded-[10px] transition-colors duration-200"
+            className="w-full bg-gray-900 hover:bg-opacity-80 text-white py-2.5 rounded-[10px] transition-colors duration-200"
           >
             Create {type}
           </Button>
@@ -242,4 +242,4 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
   );
 };
 
-export default LocationDialog;
+export default AddLocationDialog;

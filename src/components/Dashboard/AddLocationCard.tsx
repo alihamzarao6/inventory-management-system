@@ -1,5 +1,5 @@
 interface AddLocationCardProps {
-  type: "warehouse" | "store";
+  type: "Warehouse" | "Store";
   onClick: () => void;
 }
 
@@ -12,7 +12,7 @@ export const AddLocationCard: React.FC<AddLocationCardProps> = ({ type, onClick 
       <div className="text-center">
         <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-50 transition-colors duration-300">
           <svg
-            className="w-8 h-8 text-gray-400 group-hover:text-blue-500 transition-colors duration-300"
+            className="w-8 h-8 text-gray-400 group-hover:text-gray-900 transition-colors duration-300"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -25,7 +25,7 @@ export const AddLocationCard: React.FC<AddLocationCardProps> = ({ type, onClick 
             />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-gray-900 transition-colors">
           Add New {type}
         </h3>
         <p className="text-gray-500 mt-2">

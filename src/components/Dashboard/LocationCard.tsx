@@ -28,7 +28,7 @@ export const LocationCard: React.FC<LocationCardProps> = ({
           />
         </div>
         <div className="p-6 space-y-3">
-          <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-xl font-semibold text-gray-900 group-hover:text-opacity-80 transition-colors">
             {location.name}
           </h3>
           <div className="space-y-1">
@@ -39,7 +39,7 @@ export const LocationCard: React.FC<LocationCardProps> = ({
             </p>
             <p className="text-gray-500 text-sm truncate">{location.email}</p>
           </div>
-          <button className="w-full bg-gray-900 text-white py-3 rounded-xl hover:bg-blue-600 transition-colors duration-300 font-medium mt-4">
+          <button className="w-full bg-gray-900 text-white py-3 rounded-xl hover:bg-opacity-80 transition-colors duration-300 font-medium mt-4">
             View Details
           </button>
         </div>

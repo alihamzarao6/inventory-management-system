@@ -2,7 +2,7 @@ export interface BaseLocation {
     id: string;
     name: string;
     image: string;
-    type: 'warehouse' | 'store';
+    type: 'Warehouse' | 'Store';
     email: string;
     phone: string;
     address: string;
@@ -16,6 +16,6 @@ export interface SubLocation extends BaseLocation {
 }
 
 export interface Location extends BaseLocation {
-    type: 'warehouse' | 'store';
+    type: 'Warehouse' | 'Store';
     subLocations: SubLocation[];
 }

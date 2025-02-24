@@ -4,38 +4,39 @@ import { AddLocationCard } from "./AddLocationCard";
 import { MOCK_LOCATIONS } from "@/constants/mockLocations";
 import { Location } from "@/types/locations";
 import { LocationFormData } from "@/types/forms";
-import { LocationDialog } from "./LocationDialog";
+import { AddLocationDialog } from "./AddLocationDialog";
 
 const Dashboard = () => {
   const [locations, setLocations] = React.useState<Location[]>(MOCK_LOCATIONS);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [dialogType, setDialogType] = React.useState<"warehouse" | "store">(
-    "warehouse"
+  const [dialogType, setDialogType] = React.useState<"Warehouse" | "Store">(
+    "Warehouse"
   );
 
   const handleLocationClick = (location: Location) => {
     console.log("Location clicked:", location);
   };
 
-  const handleAddLocation = (type: "warehouse" | "store") => {
+  const handleAddLocation = (type: "Warehouse" | "Store") => {
     setDialogType(type);
     setDialogOpen(true);
   };
 
   const handleSubmit = (formData: LocationFormData) => {
     const newLocation: Location = {
-        id: String(Date.now()),
-        type: dialogType,
-        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBIDNT6JGHMHbuLbZMMG87ytyXnIPBnvsZgw&s",
-        ...formData,
-        subLocations: []
+      id: String(Date.now()),
+      type: dialogType,
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBIDNT6JGHMHbuLbZMMG87ytyXnIPBnvsZgw&s",
+      ...formData,
+      subLocations: [],
     };
     setLocations([...locations, newLocation]);
     setDialogOpen(false);
   };
 
-  const warehouses = locations.filter((loc) => loc.type === "warehouse");
-  const stores = locations.filter((loc) => loc.type === "store");
+  const warehouses = locations.filter((loc) => loc.type === "Warehouse");
+  const stores = locations.filter((loc) => loc.type === "Store");
 
   return (
     <div className="p-8 bg-gradient-to-b from-gray-50 to-white min-h-screen">
@@ -61,8 +62,8 @@ const Dashboard = () => {
             />
           ))}
           <AddLocationCard
-            type="warehouse"
-            onClick={() => handleAddLocation("warehouse")}
+            type="Warehouse"
+            onClick={() => handleAddLocation("Warehouse")}
           />
         </div>
       </section>
@@ -87,13 +88,13 @@ const Dashboard = () => {
             />
           ))}
           <AddLocationCard
-            type="store"
-            onClick={() => handleAddLocation("store")}
+            type="Store"
+            onClick={() => handleAddLocation("Store")}
           />
         </div>
       </section>
 
-      <LocationDialog
+      <AddLocationDialog
         type={dialogType}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
