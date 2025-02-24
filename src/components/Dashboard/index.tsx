@@ -13,10 +13,6 @@ const Dashboard = () => {
     "Warehouse"
   );
 
-  const handleLocationClick = (location: Location) => {
-    console.log("Location clicked:", location);
-  };
-
   const handleAddLocation = (type: "Warehouse" | "Store") => {
     setDialogType(type);
     setDialogOpen(true);
@@ -58,7 +54,6 @@ const Dashboard = () => {
             <LocationCard
               key={warehouse.id}
               location={warehouse}
-              onClick={handleLocationClick}
             />
           ))}
           <AddLocationCard
@@ -84,7 +79,6 @@ const Dashboard = () => {
             <LocationCard
               key={store.id}
               location={store}
-              onClick={handleLocationClick}
             />
           ))}
           <AddLocationCard

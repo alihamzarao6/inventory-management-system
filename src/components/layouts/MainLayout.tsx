@@ -45,7 +45,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <div className="flex items-center gap-4">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+              <button className="p-2 hover:bg-gray-900 rounded-lg transition-colors">
                 <Menu className="h-6 w-6" />
               </button>
             </SheetTrigger>
@@ -58,8 +58,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   Inventory System
                 </SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col h-full">
-                <div className="flex-1 py-2">
+              <div className="flex flex-col h-full bg-gray-900">
+                <div className="flex-1 py-2 bg-gray-900">
                   {menuItems.map((item) => (
                     <button
                       key={item.title}
@@ -69,7 +69,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       }}
                       className={cn(
                         "flex items-center gap-3 w-full px-4 py-3 text-gray-300 hover:bg-gray-800 transition-colors",
-                        currentPage === item.title && "bg-gray-800 text-white"
+                        currentPage === item.title && "bg-gray-800 text-white border border-gray-300"
                       )}
                     >
                       <item.icon className="h-5 w-5" />

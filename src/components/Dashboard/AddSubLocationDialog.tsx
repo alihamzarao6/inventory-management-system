@@ -14,9 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Upload, X } from "lucide-react";
+import { Location, SubLocation } from "@/types/locations";
 
-// Extend the schema to include image
-const locationSchema = z.object({
+// Zod Schema
+const subLocationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(8, "Phone number must be at least 8 characters"),
@@ -26,22 +27,23 @@ const locationSchema = z.object({
   note: z.string().optional(),
 });
 
-type LocationFormData = z.infer<typeof locationSchema>;
+type SubLocationFormData = z.infer<typeof subLocationSchema>;
 
-interface LocationFormDataWithImage extends LocationFormData {
+interface SubLocationFormDataWithImage extends SubLocationFormData {
   image: string;
+  parentId: string;
 }
 
-interface LocationDialogProps {
-  type: "Warehouse" | "Store";
+interface AddSubLocationDialogProps {
+  parentLocation: Location;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: LocationFormDataWithImage) => void;
-  initialData?: LocationFormDataWithImage;
+  onSubmit: (data: SubLocationFormDataWithImage) => void;
+  initialData?: SubLocationFormDataWithImage;
 }
 
-export const AddLocationDialog: React.FC<LocationDialogProps> = ({
-  type,
+export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
+  parentLocation,
   open,
   onOpenChange,
   onSubmit,
@@ -58,15 +60,15 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<LocationFormData>({
-    resolver: zodResolver(locationSchema),
+  } = useForm<SubLocationFormData>({
+    resolver: zodResolver(subLocationSchema),
     defaultValues: initialData || {
       name: "",
       email: "",
       phone: "",
       address: "",
-      city: "",
-      country: "",
+      city: parentLocation.city, // Pre-fill with parent location city
+      country: parentLocation.country, // Pre-fill with parent location country
       note: "",
     },
   });
@@ -78,7 +80,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
     }
   }, [initialData]);
 
-  // Reset form when dialog closes
+  // Reset form when dialog opens/closes
   React.useEffect(() => {
     if (!open) {
       if (!isEditMode) {
@@ -114,6 +116,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFile(e.target.files[0]);
+      // Clear the input value to ensure the change event fires even if the same file is selected again
       e.target.value = "";
     }
   };
@@ -158,23 +161,30 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
 
     onSubmit({
       ...data,
-      image: image,
+      image,
+      parentId: initialData?.parentId || parentLocation.id,
     });
     onOpenChange(false);
   });
+
+  const subType =
+    parentLocation.type === "Warehouse" ? "Sub Warehouse" : "Sub Store";
+  const titleText = isEditMode
+    ? `Edit ${subType}`
+    : `Add New ${subType} to ${parentLocation.name}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-white p-0 overflow-hidden flex flex-col h-[90vh]">
         <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle className="text-2xl font-semibold text-gray-900 capitalize">
-            {isEditMode ? `Edit ${type}` : `Add New ${type}`}
+          <DialogTitle className="text-2xl font-semibold text-gray-900">
+            {titleText}
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
           <form
-            id="locationForm"
+            id="subLocationForm"
             onSubmit={onFormSubmit}
             className="p-6 pt-0 space-y-6"
           >
@@ -231,18 +241,18 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-gray-900 hover:bg-opacity-70 text-white rounded-full p-1 transition-colors"
+                      className="bg-gray-900 bg-opacity-70 text-white rounded-full p-1 hover:bg-opacity-100 transition-colors"
                       title="Change image"
                     >
-                      <Upload className="h-4 w-4 text-white z-40" />
+                      <Upload className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveImage}
-                      className="bg-gray-900 hover:bg-opacity-70 text-white rounded-full p-1 transition-colors"
+                      className="bg-gray-900 bg-opacity-70 text-white rounded-full p-1 hover:bg-opacity-100 transition-colors"
                       title="Remove image"
                     >
-                      <X className="h-4 w-4 text-white z-40" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                   <input
@@ -266,7 +276,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
               </Label>
               <Input
                 id="name"
-                placeholder={`${type} Name`}
+                placeholder={`${subType} Name`}
                 {...register("name")}
                 className={cn(
                   "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -289,7 +299,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
                 <Input
                   id="email"
                   type="email"
-                  placeholder={`${type} Email`}
+                  placeholder={`${subType} Email`}
                   {...register("email")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -309,7 +319,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
                 </Label>
                 <Input
                   id="phone"
-                  placeholder={`${type} Phone Number`}
+                  placeholder={`${subType} Phone Number`}
                   {...register("phone")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -331,7 +341,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
               </Label>
               <Input
                 id="address"
-                placeholder={`${type} Street Address`}
+                placeholder={`${subType} Street Address`}
                 {...register("address")}
                 className={cn(
                   "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -353,7 +363,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
                 </Label>
                 <Input
                   id="city"
-                  placeholder={`${type} City`}
+                  placeholder={`${subType} City`}
                   {...register("city")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -373,7 +383,7 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
                 </Label>
                 <Input
                   id="country"
-                  placeholder={`${type} Country`}
+                  placeholder={`${subType} Country`}
                   {...register("country")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -406,10 +416,10 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
         <div className="px-6 py-4 border-t bg-gray-50">
           <Button
             type="submit"
-            form="locationForm"
+            form="subLocationForm"
             className="w-full bg-gray-900 hover:bg-opacity-80 text-white py-2.5 rounded-[10px] transition-colors duration-200"
           >
-            {isEditMode ? `Update ${type}` : `Create ${type}`}
+            {isEditMode ? `Update ${subType}` : `Create ${subType}`}
           </Button>
         </div>
       </DialogContent>
@@ -417,4 +427,4 @@ export const AddLocationDialog: React.FC<LocationDialogProps> = ({
   );
 };
 
-export default AddLocationDialog;
+export default AddSubLocationDialog;
