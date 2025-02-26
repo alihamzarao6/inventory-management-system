@@ -1,16 +1,14 @@
 "use client";
 import React from "react";
 import { Location } from "@/types/locations";
-import LocationDetailModal from "./LocationDetailModalProps";
+import LocationDetailModal from "./LocationDetailModal";
 
 interface LocationCardProps {
   location: Location;
-  onClick: (location: Location) => void;
 }
 
 export const LocationCard: React.FC<LocationCardProps> = ({
   location,
-  onClick,
 }) => {
   const [detailOpen, setDetailOpen] = React.useState(false);
 
