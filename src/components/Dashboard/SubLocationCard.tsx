@@ -45,13 +45,13 @@ export const SubLocationCard: React.FC<SubLocationCardProps> = ({
 
         {/* Action Icons Container - positioned at the bottom of the image */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-between px-3 py-2 bg-gradient-to-t from-black/70 to-transparent">
-          <button
+          {/* <button
             onClick={handleEdit}
             className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/40 transition-colors text-white"
             title="Edit Sub-location"
           >
             <Pencil className="h-4 w-4" />
-          </button>
+          </button> */}
 
           <button
             onClick={handleDelete}
