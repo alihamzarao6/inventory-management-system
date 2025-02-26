@@ -1,5 +1,6 @@
 "use client"
 import React from "react";
+import Link from "next/link";
 import {
   Menu,
   Store,
@@ -29,13 +30,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [currentPage, setCurrentPage] = React.useState("Dashboard");
 
   const menuItems = [
-    { title: "Dashboard", icon: Store },
-    { title: "Products", icon: Package },
-    { title: "Transfer", icon: ArrowLeftRight },
-    { title: "Incoming Items", icon: PackagePlus },
-    { title: "Stock Adjust", icon: ScrollText },
-    { title: "Customers", icon: Users },
-    { title: "Admin", icon: Settings },
+    { title: "Dashboard", icon: Store, path: "/" },
+    { title: "Products", icon: Package, path: "/products" },
+    { title: "Transfer", icon: ArrowLeftRight, path: "/transfer" },
+    { title: "Incoming Items", icon: PackagePlus, path: "/incoming-items" },
+    { title: "Stock Adjust", icon: ScrollText, path: "/stock-adjust" },
+    { title: "Customers", icon: Users, path: "/customers" },
+    { title: "Admin", icon: Settings, path: "/admin" },
   ];
 
   return (
@@ -61,6 +62,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <div className="flex flex-col h-full bg-gray-900">
                 <div className="flex-1 py-2 bg-gray-900">
                   {menuItems.map((item) => (
+                    <Link key={item.title} href={item.path}>
                     <button
                       key={item.title}
                       onClick={() => {
@@ -75,6 +77,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </button>
+                    </Link>
                   ))}
                 </div>
                 <button className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-gray-800 transition-colors mt-auto mb-4">
@@ -89,7 +92,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Content */}
-      <main className="pt-16 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
+      <main className="pt-16 mx-auto">
         {children}
       </main>
     </div>

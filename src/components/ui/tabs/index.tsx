@@ -1,9 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
-
-import { cn } from "@/utils";
+import * as React from 'react';
+import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { cn } from '@/utils';
 
 const Tabs = TabsPrimitive.Root;
 
@@ -14,7 +13,8 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+      'inline-flex items-center justify-center gap-2 rounded-xl bg-white/30 p-2 shadow-lg backdrop-blur-md',
+      'dark:bg-gray-900/30 dark:shadow-md',
       className
     )}
     {...props}
@@ -29,7 +29,12 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+      'relative flex items-center justify-center whitespace-nowrap rounded-lg px-6 py-2 text-sm font-semibold transition-all',
+      'bg-gradient-to-b from-white to-gray-400 text-gray-700 shadow-md',
+      'dark:from-gray-800 dark:to-gray-700 dark:text-white',
+      'hover:bg-gradient-to-t hover:from-gray-100 hover:to-white dark:hover:from-gray-700 dark:hover:to-gray-600',
+      'data-[state=active]:bg-blue-500 data-[state=active]:shadow-lg data-[state=active]:shadow-gray-400 data-[state=active:bg-gradient-to-t data-[state=active]:from-gray-100 data-[state=active]:to-white',
+      'focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2',
       className
     )}
     {...props}
@@ -44,7 +49,8 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      'mt-4 rounded-xl bg-white p-6 shadow-lg transition-all dark:bg-gray-800',
+      'focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2',
       className
     )}
     {...props}
