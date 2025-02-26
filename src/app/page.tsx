@@ -3,7 +3,7 @@ import Dashboard from "@/components/Dashboard"
 
 const HomePage = () => {
   return (
-    <><Dashboard /></>
+    <div className="px-4 md:px-6 lg:px-8 max-w-7xl "><Dashboard /></div>
   )
 }
 
