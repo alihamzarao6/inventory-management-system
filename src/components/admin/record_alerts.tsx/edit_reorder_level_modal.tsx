@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InventoryItem } from "@/types/inventory";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 type Props = { item: InventoryItem; onClose: () => void };
 
