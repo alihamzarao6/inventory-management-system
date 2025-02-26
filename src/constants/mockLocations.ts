@@ -1,5 +1,7 @@
 import { Location, SubLocation } from '@/types/locations';
 
+import { TransferProducts } from '@/types/products';
+
 export const MOCK_SUB_LOCATIONS: SubLocation[] = [
     // Sub Warehouses for Warehouse 1
     {
@@ -247,4 +249,44 @@ export const MOCK_LOCATIONS: Location[] = [
         country: 'Country',
         subLocations: MOCK_SUB_LOCATIONS.filter(sub => sub.parentId === '6'),
     },
+];
+
+
+export const transferProducts: TransferProducts[] = [
+  {
+    id: "P001",
+    name: "Wireless Mouse",
+    image: "/images/mouse.jpg",
+    category: "Electronics",
+    quantity: 50,
+    reorderLevel: 10,
+    from: "Warehouse A",
+    to: "Store B",
+    user: "John Doe",
+    date: "2025-02-26",
+  },
+  {
+    id: "P002",
+    name: "Mechanical Keyboard",
+    image: "/images/keyboard.jpg",
+    category: "Accessories",
+    quantity: 30,
+    reorderLevel: 5,
+    from: "Warehouse C",
+    to: "Substore D",
+    user: "Jane Smith",
+    date: "2025-02-25",
+  },
+  {
+    id: "P003",
+    name: "Gaming Headset",
+    image: "/images/headset.jpg",
+    category: "Gaming",
+    quantity: 20,
+    reorderLevel: 7,
+    from: "Store E",
+    to: "Warehouse F",
+    user: "Alice Johnson",
+    date: "2025-02-24",
+  },
 ];

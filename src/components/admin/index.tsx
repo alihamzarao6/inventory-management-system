@@ -1,5 +1,5 @@
 import React from 'react'
-import ReorderAlerts from './record_alerts.tsx'
+import ReorderAlerts from './record_alerts'
 
 const Admin = () => {
   return (

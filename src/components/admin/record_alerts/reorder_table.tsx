@@ -33,7 +33,7 @@ export default function ReorderTable({ data }: Props) {
           {data.map((item) => (
             <TableRow key={item.id}>
               <TableCell>
-                <Avatar>
+                <Avatar className="mx-auto">
                   <AvatarImage src="https://github.com/shadcn.png" alt={item.name} />
                   <AvatarFallback>{item.name.charAt(0)}</AvatarFallback>
                 </Avatar>
