@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils'; // Utility function for conditional classNames (if you use shadcn utils)
+import { cn } from '@/utils'; // Utility function for conditional classNames (if you use shadcn utils)
 import { Button } from '@/components/ui/button';
 import { Home, Package, Truck, FileText, BarChart, Users, ClipboardList } from 'lucide-react';
 

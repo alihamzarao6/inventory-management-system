@@ -12,7 +12,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import {
   Sheet,
   SheetContent,
