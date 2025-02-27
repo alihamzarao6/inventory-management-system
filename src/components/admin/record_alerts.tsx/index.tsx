@@ -30,7 +30,7 @@ export default function ReorderAlerts() {
 
   return (
     <div className="flex">
-      <Sidebar />
+      {/* <Sidebar /> */}
       <div className="p-6 space-y-6 w-full bg-white shadow-lg rounded-xl">
         <div className="flex items-center justify-between shadow-md p-4 rounded-lg bg-gray-100">
           <h2 className="text-xl font-semibold">Reorder Alerts</h2>

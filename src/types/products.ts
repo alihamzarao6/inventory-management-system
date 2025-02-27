@@ -58,6 +58,7 @@ export interface ProductFiltersT {
     stockStatus?: StockStatus;
     dateRange?: DateRange;
     locationId?: string;
+    isCustomer?: boolean;
 }
 
 // Product table pagination

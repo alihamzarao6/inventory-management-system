@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { Search, ArrowRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import { MOCK_CUSTOMERS } from "@/constants/mockProducts";
+import { Button } from "@/components/ui/button";
 
 interface LocationFiltersProps {
   selectedLocationId?: string;
@@ -23,7 +24,12 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
     "locations" | "sublocations" | "customers"
   >("locations");
 
-  // Handle search input
+  // Reset to locations view when component is mounted
+  useEffect(() => {
+    setViewMode("locations");
+  }, []);
+
+  // Handle search input with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
@@ -47,6 +53,17 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
   // Handle customer selection
   const handleCustomerSelect = (customerId: string) => {
     onLocationSelect(customerId, true);
+  };
+
+  // Get selected location name
+  const getSelectedLocationName = () => {
+    if (selectedMainLocation) {
+      return (
+        MOCK_LOCATIONS.find((loc) => loc.id === selectedMainLocation)?.name ||
+        "Selected Location"
+      );
+    }
+    return "";
   };
 
   // Filter locations based on search
@@ -90,15 +107,22 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
     );
   };
 
+    const clearFilters = () => {
+      onLocationSelect("");
+      setSearchQuery("");
+      setSelectedMainLocation("");
+      setViewMode("locations");
+    };
+
   return (
     <div className="py-2">
       {/* Back Navigation for sublocations view */}
       {viewMode === "sublocations" && (
         <button
-          className="flex items-center text-sm mb-3 px-3 py-1 hover:bg-gray-100 rounded-md"
+          className="flex items-center text-sm mb-3 px-3 py-1 hover:bg-gray-100 rounded-md font-medium"
           onClick={() => setViewMode("locations")}
         >
-          <ArrowRight className="h-4 w-4 mr-1 rotate-180" />
+          <ArrowLeft className="h-4 w-4 mr-1" />
           Back to Locations
         </button>
       )}
@@ -118,7 +142,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
       </div>
 
       {/* Nav Tabs - Only show in main view */}
-      {viewMode === "locations" && (
+      {viewMode !== "sublocations" && (
         <div className="flex border-b mb-3">
           <button
             className={`px-4 py-2 text-sm font-medium ${
@@ -132,7 +156,6 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
           </button>
           <button
             className={`px-4 py-2 text-sm font-medium ${
-              //@ts-ignore
               viewMode === "customers"
                 ? "text-gray-900 border-b-2 border-gray-900"
                 : "text-gray-500"
@@ -145,7 +168,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
       )}
 
       {/* Location List */}
-      <ScrollArea className="h-[320px]">
+      <ScrollArea className="max-h-[300px] overflow-y-auto">
         {viewMode === "locations" && (
           <div className="px-2">
             {/* Warehouses */}
@@ -163,15 +186,16 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                       className="flex-1"
                       onClick={() => handleMainLocationSelect(warehouse.id)}
                     >
-                      {warehouse.name}{" "}
-                      <ArrowRight className="h-3 w-3 inline ml-1" />
+                      {warehouse.name}
                     </div>
-                    <button
-                      className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
                       onClick={() => handleViewAllProducts(warehouse.id)}
                     >
                       All
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -194,15 +218,16 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                       className="flex-1"
                       onClick={() => handleMainLocationSelect(store.id)}
                     >
-                      {store.name}{" "}
-                      <ArrowRight className="h-3 w-3 inline ml-1" />
+                      {store.name}
                     </div>
-                    <button
-                      className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
                       onClick={() => handleViewAllProducts(store.id)}
                     >
                       All
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -214,9 +239,22 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
         {viewMode === "sublocations" && selectedMainLocation && (
           <div className="px-2">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 px-2">
-              {MOCK_LOCATIONS.find((loc) => loc.id === selectedMainLocation)
-                ?.name || "Sub-locations"}
+              {getSelectedLocationName()}
             </h3>
+
+            {/* Parent location option */}
+            <div
+              className="px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer bg-gray-50 border border-gray-100 mb-2"
+              onClick={() => handleViewAllProducts(selectedMainLocation)}
+            >
+              <div className="font-medium">
+                All in {getSelectedLocationName()}
+              </div>
+              <div className="text-xs text-gray-500">
+                View all items in this location
+              </div>
+            </div>
+
             <div className="space-y-1">
               {getSubLocations().map((sublocation) => (
                 <div
@@ -250,6 +288,17 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
             </div>
           </div>
         )}
+
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-50 mb-2"
+            onClick={clearFilters}
+          >
+            Clear All Filters
+          </Button>
+        </>
       </ScrollArea>
     </div>
   );

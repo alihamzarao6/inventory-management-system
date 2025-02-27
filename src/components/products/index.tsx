@@ -1,29 +1,33 @@
+"use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { useRouter, useParams } from "next/navigation";
 import { Plus, Edit, Check } from "lucide-react";
 import ProductsTable from "@/components/products/ProductsTable";
 import ProductFilters from "@/components/products/ProductFilters";
-import LocationFilters from "@/components/products/LocationFilters";
 import AddProductForm from "@/components/products/AddProductForm";
 import ProductDetailModal from "@/components/products/ProductDetailModal";
 import { Button } from "@/components/ui/button";
 import {
   Product,
+  ProductFiltersT,
   PaginationState,
   ProductFormData,
-  ProductFiltersT,
 } from "@/types/products";
 import {
   MOCK_PRODUCTS,
   getProductsByLocationId,
+  getProductsByCategory,
+  getProductsByStockStatus,
   searchProductsByName,
 } from "@/constants/mockProducts";
+import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import useToast from "@/hooks/useToast";
 
 const ProductsPage = () => {
   const router = useRouter();
+  const params = useParams();
   const { showToast } = useToast();
-  const locationId = router.query.id as string | undefined;
+  const locationId = params?.id as string | undefined;
 
   // State management
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,7 +36,7 @@ const ProductsPage = () => {
   const [filters, setFilters] = useState<ProductFiltersT>({});
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    perPage: 10,
+    perPage: 5, // Changed to 5 to match requirements
     total: 0,
   });
 
@@ -58,7 +62,28 @@ const ProductsPage = () => {
       let productsData: Product[];
 
       if (locationId) {
-        productsData = getProductsByLocationId(locationId);
+        // Handle both location and sub-location IDs
+        if (locationId.startsWith("sub-")) {
+          // It's a sub-location
+          productsData = MOCK_PRODUCTS.filter((p) =>
+            p.locations.some(
+              (loc) => loc.locationId === locationId && loc.isSubLocation
+            )
+          );
+        } else {
+          // Get products from this location and its sub-locations
+          productsData = MOCK_PRODUCTS.filter((p) =>
+            p.locations.some(
+              (loc) =>
+                (loc.locationId === locationId && !loc.isSubLocation) ||
+                (loc.isSubLocation &&
+                  MOCK_SUB_LOCATIONS.some(
+                    (sub) =>
+                      sub.id === loc.locationId && sub.parentId === locationId
+                  ))
+            )
+          );
+        }
       } else {
         productsData = [...MOCK_PRODUCTS];
       }
@@ -67,9 +92,10 @@ const ProductsPage = () => {
       setPagination((prev) => ({
         ...prev,
         total: productsData.length,
+        page: 1, // Reset to first page when changing location
       }));
       setIsLoading(false);
-    }, 500);
+    }, 300);
   }, [locationId]);
 
   // Apply filters and sorting
@@ -78,7 +104,12 @@ const ProductsPage = () => {
 
     // Apply search filter
     if (filters.search) {
-      result = searchProductsByName(filters.search);
+      const searchTerm = filters.search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchTerm) ||
+          p.category.toLowerCase().includes(searchTerm)
+      );
     }
 
     // Apply category filter
@@ -99,13 +130,43 @@ const ProductsPage = () => {
       });
     }
 
-    // Apply date range filter (simplified implementation)
-    if (filters.dateRange) {
-      // This would typically involve more complex date filtering
-      // For simplicity, we're just showing the concept
-      if (filters.dateRange.type === "today") {
-        const today = new Date().toISOString().split("T")[0];
-        result = result.filter((p) => p.createdAt.startsWith(today));
+    // Apply date range filter
+    if (filters.dateRange?.startDate && filters.dateRange?.endDate) {
+      const startDate = new Date(filters.dateRange.startDate).getTime();
+      const endDate = new Date(filters.dateRange.endDate).getTime();
+
+      result = result.filter((p) => {
+        const productDate = new Date(p.createdAt).getTime();
+        return productDate >= startDate && productDate <= endDate;
+      });
+    }
+
+    // Apply location filter from dropdown (if not already filtered by URL param)
+    if (filters.locationId && !locationId) {
+      if (filters.isCustomer) {
+        // Filter for customer - would be implemented in a real API
+        result = result.filter((p) => p.id.includes("2")); // Just for demo
+      } else if (filters.locationId.startsWith("sub-")) {
+        // Sub-location filter
+        result = result.filter((p) =>
+          p.locations.some(
+            (loc) => loc.locationId === filters.locationId && loc.isSubLocation
+          )
+        );
+      } else {
+        // Main location filter
+        result = result.filter((p) =>
+          p.locations.some(
+            (loc) =>
+              (loc.locationId === filters.locationId && !loc.isSubLocation) ||
+              (loc.isSubLocation &&
+                MOCK_SUB_LOCATIONS.some(
+                  (sub) =>
+                    sub.id === loc.locationId &&
+                    sub.parentId === filters.locationId
+                ))
+          )
+        );
       }
     }
 
@@ -150,7 +211,7 @@ const ProductsPage = () => {
     });
 
     setFilteredProducts(result);
-  }, [products, filters, sortColumn, sortDirection]);
+  }, [products, filters, sortColumn, sortDirection, locationId]);
 
   // Handle pagination change
   const handlePageChange = (page: number) => {
@@ -172,11 +233,12 @@ const ProductsPage = () => {
   // Handle location filter
   const handleLocationFilter = (locId: string, isCustomer?: boolean) => {
     if (isCustomer) {
-      // This would typically filter by customer ID
-      showToast(
-        "Customer filtering will be implemented in future updates",
-        "info"
-      );
+      // Apply customer filter via the filters state
+      setFilters({
+        ...filters,
+        locationId: locId,
+        isCustomer: true,
+      });
     } else {
       router.push(`/products/${locId}`);
     }
@@ -250,8 +312,51 @@ const ProductsPage = () => {
   const handleAddProduct = async (
     data: ProductFormData & { image: string }
   ) => {
-    console.log(data, data?.image);
-    return;
+    // In a real app, this would be an API call
+    const newProduct: Product = {
+      id: `product-${Date.now()}`,
+      name: data.name,
+      category: data.category,
+      image: data.image,
+      costPrice: data.costPrice,
+      wholesalePrice: data.wholesalePrice,
+      retailPrice: data.retailPrice,
+      retailPriceUSD: data.retailPrice / 17.5, // Converting back to USD for display
+      reorderLevel: data.reorderLevel,
+      locations: [
+        {
+          locationId: data.initialLocationId,
+          quantity: data.initialQuantity,
+          isSubLocation: data.initialLocationId.includes("sub-"),
+        },
+      ],
+      note: data.note,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add to products list
+    setProducts((prev) => [newProduct, ...prev]);
+    showToast("Product added successfully", "success");
+  };
+
+  // Get location name for the header
+  const getLocationName = () => {
+    if (locationId) {
+      if (locationId.startsWith("sub-")) {
+        const subLocation = MOCK_SUB_LOCATIONS.find(
+          (sl) => sl.id === locationId
+        );
+        return subLocation
+          ? `Products for ${subLocation.name}`
+          : "Products for Selected Location";
+      } else {
+        const location = MOCK_LOCATIONS.find((l) => l.id === locationId);
+        return location
+          ? `Products for ${location.name}`
+          : "Products for Selected Location";
+      }
+    }
+    return "Manage your inventory products";
   };
 
   // Calculate current page data (pagination)
@@ -266,11 +371,7 @@ const ProductsPage = () => {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-            <p className="text-gray-500">
-              {locationId
-                ? "Products for selected location"
-                : "Manage your inventory products"}
-            </p>
+            <p className="text-gray-500">{getLocationName()}</p>
           </div>
           <div className="flex gap-3">
             <Button
@@ -297,14 +398,7 @@ const ProductsPage = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <ProductFilters
-              filters={filters}
-              onFilterChange={handleFilterChange}
-            />
-          </div>
-        </div>
+        <ProductFilters filters={filters} onFilterChange={handleFilterChange} />
 
         {/* Products Table */}
         <ProductsTable

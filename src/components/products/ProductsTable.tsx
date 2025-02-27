@@ -1,11 +1,25 @@
 import React, { useState } from "react";
-import { Check, ChevronDown, ChevronUp, Edit, Printer } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  Pencil,
+  Printer,
+} from "lucide-react";
 import { Product, ProductFiltersT, PaginationState } from "@/types/products";
 import { getTotalProductQuantity } from "@/constants/mockProducts";
 import { cn } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProductsTableProps {
   products: Product[];
@@ -126,360 +140,442 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   return (
     <div className="w-full">
       {/* Table Section */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-3 py-4 text-left">
-                <Checkbox
-                  checked={
-                    selectedProductIds.length === products.length &&
-                    products.length > 0
-                  }
-                  onCheckedChange={toggleSelectAll}
-                  className="rounded"
-                />
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Photo
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSortClick("name")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>Item Name</span>
-                  {renderSortIndicator("name")}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSortClick("quantity")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>Item Quantity</span>
-                  {renderSortIndicator("quantity")}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSortClick("costPrice")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>Cost Price ($)</span>
-                  {renderSortIndicator("costPrice")}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSortClick("wholesalePrice")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>Wholesale Price ($)</span>
-                  {renderSortIndicator("wholesalePrice")}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSortClick("retailPrice")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>Retail Price (K)</span>
-                  {renderSortIndicator("retailPrice")}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Note
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSortClick("createdAt")}
-              >
-                <div className="flex items-center gap-1">
-                  <span>Date Created</span>
-                  {renderSortIndicator("createdAt")}
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {products.length > 0 ? (
-              products.map((product) => {
-                const totalQuantity = getTotalProductQuantity(product);
-                const isSelected = selectedProductIds.includes(product.id);
-                const isEditing = editedRows[product.id] || false;
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="pl-4 py-4 pr-2">
+                  <Checkbox
+                    checked={
+                      selectedProductIds.length === products.length &&
+                      products.length > 0
+                    }
+                    onCheckedChange={toggleSelectAll}
+                    className="rounded"
+                  />
+                </th>
+                <th className="px-4 py-4">Photo</th>
+                <th
+                  className="px-6 py-4 cursor-pointer"
+                  onClick={() => handleSortClick("name")}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Item Name</span>
+                    {renderSortIndicator("name")}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer"
+                  onClick={() => handleSortClick("quantity")}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Item Quantity</span>
+                    {renderSortIndicator("quantity")}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer"
+                  onClick={() => handleSortClick("costPrice")}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Cost Price ($)</span>
+                    {renderSortIndicator("costPrice")}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer whitespace-nowrap"
+                  onClick={() => handleSortClick("wholesalePrice")}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Wholesale Price ($)</span>
+                    {renderSortIndicator("wholesalePrice")}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer"
+                  onClick={() => handleSortClick("retailPrice")}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Retail Price (K)</span>
+                    {renderSortIndicator("retailPrice")}
+                  </div>
+                </th>
+                <th className="px-6 py-4">Note</th>
+                <th
+                  className="px-6 py-4 cursor-pointer whitespace-nowrap"
+                  onClick={() => handleSortClick("createdAt")}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Date Created</span>
+                    {renderSortIndicator("createdAt")}
+                  </div>
+                </th>
+                {isEditMode && <th className="px-4 py-4">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {products.length > 0 ? (
+                products.map((product, index) => {
+                  const totalQuantity = getTotalProductQuantity(product);
+                  const isSelected = selectedProductIds.includes(product.id);
+                  const isEditing = editedRows[product.id] || false;
 
-                // Calculate profit margins
-                const wholesaleMargin =
-                  ((product.wholesalePrice - product.costPrice) /
-                    product.wholesalePrice) *
-                  100;
-                const retailMargin =
-                  ((product.retailPriceUSD - product.wholesalePrice) /
-                    product.retailPriceUSD) *
-                  100;
+                  // Calculate profit margins
+                  const wholesaleMargin =
+                    ((product.wholesalePrice - product.costPrice) /
+                      product.wholesalePrice) *
+                    100;
+                  const retailMargin =
+                    ((product.retailPriceUSD - product.wholesalePrice) /
+                      product.retailPriceUSD) *
+                    100;
 
-                return (
-                  <tr
-                    key={product.id}
-                    className={cn(
-                      "hover:bg-gray-50 transition-colors",
-                      isSelected && "bg-blue-50 hover:bg-blue-50"
-                    )}
-                  >
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleRowSelection(product.id)}
-                        className="rounded"
-                      />
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      <div className="h-16 w-16 rounded-md overflow-hidden">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="h-full w-full object-cover"
+                  return (
+                    <tr
+                      key={product.id}
+                      className={cn(
+                        "transition-colors border-t border-gray-100",
+                        isSelected
+                          ? "bg-blue-50"
+                          : index % 2 === 0
+                          ? "bg-white"
+                          : "bg-gray-50/30",
+                        "hover:bg-gray-50"
+                      )}
+                    >
+                      <td className="pl-4 py-4 pr-2">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleRowSelection(product.id)}
+                          className="rounded"
                         />
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      {isEditMode && isEditing ? (
-                        <div className="space-y-1">
+                      </td>
+                      <td className="px-4 py-4">
+                        <Avatar className="h-12 w-12 rounded-md">
+                          <AvatarImage
+                            src={product.image}
+                            alt={product.name}
+                            className="object-cover"
+                          />
+                          <AvatarFallback>
+                            {product.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isEditMode && isEditing ? (
+                          <div className="space-y-1">
+                            <Input
+                              defaultValue={product.name}
+                              className="px-2 py-1 h-8"
+                            />
+                            <Input
+                              defaultValue={product.category}
+                              className="px-2 py-1 h-8 text-sm text-gray-500"
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => onViewProductDetails(product)}
+                            className="cursor-pointer"
+                          >
+                            <div className="text-gray-900 font-medium">
+                              {product.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {product.category}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {isEditMode && isEditing ? (
                           <Input
-                            defaultValue={product.name}
+                            type="number"
+                            defaultValue={totalQuantity}
+                            className="px-2 py-1 h-8 w-20"
+                          />
+                        ) : (
+                          <div>
+                            <div className="text-gray-900">{totalQuantity}</div>
+                            <div
+                              className="text-sm text-blue-600 hover:underline cursor-pointer"
+                              onClick={() => onViewProductDetails(product)}
+                            >
+                              Locations ({product.locations.length})
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {isEditMode && isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            defaultValue={product.costPrice}
+                            className="px-2 py-1 h-8 w-24"
+                          />
+                        ) : (
+                          <div className="text-gray-900">
+                            $ {product.costPrice.toFixed(2)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {isEditMode && isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            defaultValue={product.wholesalePrice}
+                            className="px-2 py-1 h-8 w-24"
+                          />
+                        ) : (
+                          <div>
+                            <div className="text-gray-900">
+                              $ {product.wholesalePrice.toFixed(2)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Profit: {wholesaleMargin.toFixed(1)}%
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {isEditMode && isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            defaultValue={product.retailPrice}
+                            className="px-2 py-1 h-8 w-24"
+                          />
+                        ) : (
+                          <div>
+                            <div className="text-gray-900">
+                              K {product.retailPrice.toFixed(2)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              $ {product.retailPriceUSD.toFixed(2)} |{" "}
+                              {retailMargin.toFixed(1)}%
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 max-w-xs overflow-hidden text-ellipsis">
+                        {isEditMode && isEditing ? (
+                          <Input
+                            defaultValue={product.note || ""}
                             className="px-2 py-1 h-8"
                           />
-                          <Input
-                            defaultValue={product.category}
-                            className="px-2 py-1 h-8 text-sm text-gray-500"
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => onViewProductDetails(product)}
-                          className="cursor-pointer"
-                        >
-                          <div className="text-gray-900 font-medium">
-                            {product.name}
+                        ) : (
+                          <div className="text-gray-900">
+                            {product.note || "-"}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {product.category}
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      {isEditMode && isEditing ? (
-                        <Input
-                          type="number"
-                          defaultValue={totalQuantity}
-                          className="px-2 py-1 h-8 w-20"
-                        />
-                      ) : (
-                        <div>
-                          <div className="text-gray-900">{totalQuantity}</div>
-                          <div className="text-sm text-blue-600 hover:underline cursor-pointer">
-                            Locations ({product.locations.length})
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      {isEditMode && isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          defaultValue={product.costPrice}
-                          className="px-2 py-1 h-8 w-24"
-                        />
-                      ) : (
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-900">
-                          {formatCurrency(product.costPrice)}
+                          {new Date(product.createdAt).toLocaleDateString()}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      {isEditMode && isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          defaultValue={product.wholesalePrice}
-                          className="px-2 py-1 h-8 w-24"
-                        />
-                      ) : (
-                        <div>
-                          <div className="text-gray-900">
-                            {formatCurrency(product.wholesalePrice)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Profit: {wholesaleMargin.toFixed(1)}%
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      {isEditMode && isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          defaultValue={product.retailPrice}
-                          className="px-2 py-1 h-8 w-24"
-                        />
-                      ) : (
-                        <div>
-                          <div className="text-gray-900">
-                            K {product.retailPrice.toFixed(2)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {formatCurrency(product.retailPriceUSD)} |{" "}
-                            {retailMargin.toFixed(1)}%
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis">
-                      {isEditMode && isEditing ? (
-                        <Input
-                          defaultValue={product.note || ""}
-                          className="px-2 py-1 h-8"
-                        />
-                      ) : (
-                        <div className="text-gray-900">
-                          {product.note || "-"}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      {isEditMode && isEditing ? (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          onClick={() => {
-                            // Toggle editing status for this row
-                            setEditedRows((prev) => ({
-                              ...prev,
-                              [product.id]: false,
-                            }));
-
-                            // Call the save function
-                            if (onSaveEdit) onSaveEdit();
-                          }}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <div>
-                          <div className="text-gray-900">
-                            {new Date(product.createdAt).toLocaleDateString()}
-                          </div>
-                          {isEditMode && (
+                      </td>
+                      {isEditMode && (
+                        <td className="px-4 py-4">
+                          {isEditing ? (
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                               onClick={() => {
                                 // Toggle editing status for this row
                                 setEditedRows((prev) => ({
                                   ...prev,
-                                  [product.id]: true,
+                                  [product.id]: false,
                                 }));
+
+                                // Call the save function
+                                if (onSaveEdit) onSaveEdit();
                               }}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Check className="h-4 w-4" />
                             </Button>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    className="p-2 hover:bg-gray-100"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      // Toggle editing status for this row
+                                      setEditedRows((prev) => ({
+                                        ...prev,
+                                        [product.id]: true,
+                                      }));
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
-                        </div>
+                        </td>
                       )}
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td
-                  colSpan={9}
-                  className="px-6 py-10 text-center text-gray-500"
-                >
-                  No products found matching your criteria
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td
+                    colSpan={isEditMode ? 10 : 9}
+                    className="px-6 py-10 text-center text-gray-500"
+                  >
+                    No products found matching your criteria
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-
+      
       {/* Pagination and Summary */}
-      <div className="flex justify-between items-center mt-4">
+      <div className="flex justify-between items-center mt-6">
         <div className="text-sm text-gray-500">
-          Showing {products.length} of {pagination.total} products
+          Showing {Math.min(pagination.perPage, products.length)} of{" "}
+          {pagination.total} products
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full"
-            onClick={() => onPageChange(pagination.page - 1)}
-            disabled={pagination.page === 1}
-          >
-            <ChevronUp className="h-4 w-4 rotate-90" />
-          </Button>
+        {pagination.total > pagination.perPage && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              onClick={() => onPageChange(pagination.page - 1)}
+              disabled={pagination.page === 1}
+            >
+              <ChevronUp className="h-4 w-4 rotate-90" />
+            </Button>
 
-          {generatePaginationItems().map((item, index) =>
-            typeof item === "number" ? (
-              <Button
-                key={index}
-                variant={pagination.page === item ? "default" : "outline"}
-                className={cn(
-                  "rounded-full min-w-[40px]",
-                  pagination.page === item
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-700"
-                )}
-                onClick={() => onPageChange(item)}
-              >
-                {item}
-              </Button>
-            ) : (
-              <span key={index} className="text-gray-400">
-                ...
-              </span>
-            )
-          )}
+            {(() => {
+              const totalPages = Math.ceil(
+                pagination.total / pagination.perPage
+              );
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full"
-            onClick={() => onPageChange(pagination.page + 1)}
-            disabled={pagination.page * pagination.perPage >= pagination.total}
-          >
-            <ChevronDown className="h-4 w-4 rotate-90" />
-          </Button>
+              // Don't show pagination for 1 page
+              if (totalPages <= 1) return null;
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full ml-2"
-            title="Print"
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
-        </div>
+              let buttons = [];
+
+              // Always show first page
+              buttons.push(
+                <Button
+                  key="page-1"
+                  variant={pagination.page === 1 ? "default" : "outline"}
+                  className={cn(
+                    "rounded-full min-w-[40px]",
+                    pagination.page === 1
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-700"
+                  )}
+                  onClick={() => onPageChange(1)}
+                >
+                  1
+                </Button>
+              );
+
+              // Show ellipsis if needed
+              if (pagination.page > 3) {
+                buttons.push(
+                  <span key="ellipsis-1" className="text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+
+              // Show pages around current page
+              for (
+                let i = Math.max(2, pagination.page - 1);
+                i <= Math.min(totalPages - 1, pagination.page + 1);
+                i++
+              ) {
+                if (i === 1 || i === totalPages) continue; // Skip first and last page as they're always shown
+
+                buttons.push(
+                  <Button
+                    key={`page-${i}`}
+                    variant={pagination.page === i ? "default" : "outline"}
+                    className={cn(
+                      "rounded-full min-w-[40px]",
+                      pagination.page === i
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-700"
+                    )}
+                    onClick={() => onPageChange(i)}
+                  >
+                    {i}
+                  </Button>
+                );
+              }
+
+              // Show ellipsis if needed
+              if (pagination.page < totalPages - 2) {
+                buttons.push(
+                  <span key="ellipsis-2" className="text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+
+              // Always show last page
+              if (totalPages > 1) {
+                buttons.push(
+                  <Button
+                    key={`page-${totalPages}`}
+                    variant={
+                      pagination.page === totalPages ? "default" : "outline"
+                    }
+                    className={cn(
+                      "rounded-full min-w-[40px]",
+                      pagination.page === totalPages
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-700"
+                    )}
+                    onClick={() => onPageChange(totalPages)}
+                  >
+                    {totalPages}
+                  </Button>
+                );
+              }
+
+              return buttons;
+            })()}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              onClick={() => onPageChange(pagination.page + 1)}
+              disabled={
+                pagination.page * pagination.perPage >= pagination.total
+              }
+            >
+              <ChevronDown className="h-4 w-4 rotate-90" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full ml-2"
+              title="Print"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

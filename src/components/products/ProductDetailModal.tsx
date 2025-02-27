@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import { Edit, X } from "lucide-react";
 import {
@@ -91,36 +92,21 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[1000px] bg-white p-0 overflow-hidden flex flex-col h-[90vh]">
+        <DialogContent className="sm:max-w-[1000px] bg-white p-0 overflow-x-hidden overflow-y-autoflex flex-col max-h-[90vh]">
           <DialogHeader className="px-6 py-4 border-b flex justify-between items-center">
             <DialogTitle className="text-2xl font-semibold text-gray-900">
               {product.name}
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
           </DialogHeader>
 
-          <Tabs defaultValue="details" className="flex-1 overflow-hidden">
+          <Tabs
+            defaultValue="details"
+            className="flex-1 overflow-hidden rounded-xl bg-gray-50 shadow-lg"
+          >
             <div className="border-b px-6">
-              <TabsList className="h-12">
-                <TabsTrigger
-                  value="details"
-                  className="text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900"
-                >
-                  Details
-                </TabsTrigger>
-                <TabsTrigger
-                  value="history"
-                  className="text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-gray-900"
-                >
-                  History
-                </TabsTrigger>
+              <TabsList className="flex gap-3 p-3 rounded-xl shadow-lg">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
               </TabsList>
             </div>
 

@@ -1,5 +1,5 @@
 import React from "react";
-import ProductsPage from "@/components/products/ProductsPage";
+import ProductsPage from "@/components/products";
 
 const ProductsByLocationPage = () => {
   return <ProductsPage />;

@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useRef } from "react";
 import { X, Upload, AlertCircle } from "lucide-react";
 import { z } from "zod";
@@ -363,7 +364,11 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {PRODUCT_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
+                      <SelectItem
+                        key={category}
+                        value={category}
+                        className="hover:!bg-gray-200"
+                      >
                         {category}
                       </SelectItem>
                     ))}
@@ -442,12 +447,16 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   >
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="" disabled>
+                  <SelectContent className="">
+                    <SelectItem value=" " disabled>
                       Select a location
                     </SelectItem>
                     {getAllLocations().map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
+                      <SelectItem
+                        key={location.id}
+                        value={location.id}
+                        className="hover:!bg-gray-200"
+                      >
                         {location.name}
                       </SelectItem>
                     ))}

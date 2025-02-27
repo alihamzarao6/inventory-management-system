@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Pencil, X } from "lucide-react";
@@ -38,6 +39,7 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
   onDeleteSubLocation = () => {},
   onViewProducts = () => {},
 }) => {
+  const router = useRouter();
   const [addSubLocationDialogOpen, setAddSubLocationDialogOpen] =
     React.useState(false);
   const [editLocationDialogOpen, setEditLocationDialogOpen] =
@@ -119,6 +121,18 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
     }
   };
 
+  // Handle navigation to location's products page
+  const navigateToLocationProducts = () => {
+    router.push(`/products/${location.id}`);
+    onClose();
+  };
+
+  // Handle navigation to sublocation's products page
+  const navigateToSubLocationProducts = (subLocation: SubLocation) => {
+    router.push(`/products/${subLocation.id}`);
+    onClose();
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -174,7 +188,10 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                     </div>
 
                     <div className="flex gap-4 pt-4">
-                      <Button className="flex-1 bg-black hover:bg-gray-800 text-white rounded-[10px]">
+                      <Button
+                        className="flex-1 bg-black hover:bg-gray-800 text-white rounded-[10px]"
+                        onClick={navigateToLocationProducts}
+                      >
                         Products
                       </Button>
                       <Button
@@ -216,7 +233,9 @@ export const LocationDetailModal: React.FC<LocationDetailModalProps> = ({
                     <SubLocationCard
                       key={subLocation.id}
                       subLocation={subLocation}
-                      onViewProducts={onViewProducts}
+                      onViewProducts={() =>
+                        navigateToSubLocationProducts(subLocation)
+                      }
                       onEdit={handleEditSubLocation}
                       onDelete={handleDeleteSubLocation}
                     />
