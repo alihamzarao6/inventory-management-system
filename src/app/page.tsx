@@ -1,5 +1,5 @@
 "use client"
-import Dashboard from "@/components/dashboard"
+import Dashboard from "@/components/dashboard/index"
 
 const HomePage = () => {
   return (
