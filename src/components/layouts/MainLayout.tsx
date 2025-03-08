@@ -35,7 +35,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { title: "Transfer", icon: ArrowLeftRight, path: "/transfer" },
     { title: "Incoming Items", icon: PackagePlus, path: "/incoming-items" },
     { title: "Stock Adjustment", icon: ScrollText, path: "/stock-adjustment" },
-    { title: "Customers", icon: Users, path: "/customers" },
+    { title: "Customers", icon: Users, path: "/customer" },
     { title: "Admin", icon: Settings, path: "/admin" },
   ];
 
