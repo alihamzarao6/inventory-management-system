@@ -8,7 +8,7 @@ import MainLayout from "@/components/layouts/MainLayout";
 
 export const metadata: Metadata = {
   title: "Inventory Management System",
-  description: "Crypto Tokens Claiming Platform",
+  description: "A Platform to manage products through inventory management",
 };
 
 const workSans = Work_Sans({
