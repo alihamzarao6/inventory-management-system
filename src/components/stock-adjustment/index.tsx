@@ -301,7 +301,7 @@ const StockAdjustmentPage = () => {
   };
 
   return (
-    <div className="p-8 bg-gradient-to-b from-gray-50 to-white min-h-screen">
+    <div className="p-4 bg-gray-50 min-h-screen">
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Stock Adjust</h1>

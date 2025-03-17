@@ -35,31 +35,29 @@ const Dashboard = () => {
   const stores = locations.filter((loc) => loc.type === "Store");
 
   return (
-    <div className="p-8 bg-gradient-to-b from-gray-50 to-white min-h-screen">
+    <div className="p-4 bg-gray-50 min-h-screen">
       {/* Warehouses Section */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Warehouses</h2>
-            <p className="text-gray-500 mt-1">
-              Manage your warehouse locations
-            </p>
           </div>
           <div className="flex items-center gap-4">
             {/* Additional header actions can go here */}
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {warehouses.map((warehouse) => (
-            <LocationCard
-              key={warehouse.id}
-              location={warehouse}
-            />
+            <div key={warehouse.id} className="h-full">
+              <LocationCard location={warehouse} />
+            </div>
           ))}
-          <AddLocationCard
-            type="Warehouse"
-            onClick={() => handleAddLocation("Warehouse")}
-          />
+          <div className="h-full">
+            <AddLocationCard
+              type="Warehouse"
+              onClick={() => handleAddLocation("Warehouse")}
+            />
+          </div>
         </div>
       </section>
 
@@ -68,7 +66,6 @@ const Dashboard = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Stores</h2>
-            <p className="text-gray-500 mt-1">Manage your store locations</p>
           </div>
           <div className="flex items-center gap-4">
             {/* Additional header actions can go here */}
@@ -76,15 +73,16 @@ const Dashboard = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {stores.map((store) => (
-            <LocationCard
-              key={store.id}
-              location={store}
-            />
+            <div key={store.id} className="h-full">
+              <LocationCard location={store} />
+            </div>
           ))}
-          <AddLocationCard
-            type="Store"
-            onClick={() => handleAddLocation("Store")}
-          />
+          <div className="h-full">
+            <AddLocationCard
+              type="Store"
+              onClick={() => handleAddLocation("Store")}
+            />
+          </div>
         </div>
       </section>
 

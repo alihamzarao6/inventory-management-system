@@ -18,19 +18,19 @@ import { Location, SubLocation } from "@/types/locations";
 
 // Zod Schema
 const subLocationSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(8, "Phone number must be at least 8 characters"),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  country: z.string().min(1, "Country is required"),
+  name: z.string().trim().min(1, "Name is required"),
+  email: z.string().trim().email("Invalid email address"),
+  phone: z.string().trim().min(8, "Phone number must be at least 8 characters"),
+  address: z.string().trim().min(1, "Address is required"),
+  city: z.string().trim().min(1, "City is required"),
+  country: z.string().trim().min(1, "Country is required"),
   note: z.string().optional(),
 });
 
 type SubLocationFormData = z.infer<typeof subLocationSchema>;
 
 interface SubLocationFormDataWithImage extends SubLocationFormData {
-  image: string;
+  image: string | null;
   parentId: string;
 }
 
@@ -154,11 +154,6 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
   };
 
   const onFormSubmit = handleSubmit((data) => {
-    if (!image) {
-      setImageError("Please upload an image");
-      return;
-    }
-
     onSubmit({
       ...data,
       image,
@@ -191,7 +186,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
             {/* Image Upload */}
             <div className="space-y-2">
               <Label htmlFor="image" className="text-gray-700">
-                Thumbnail Image *
+                Thumbnail Image(Optional)
               </Label>
 
               {!image ? (
@@ -272,7 +267,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="name" className="text-gray-700">
-                Name *
+                Name
               </Label>
               <Input
                 id="name"
@@ -294,7 +289,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-700">
-                  Email *
+                  Email
                 </Label>
                 <Input
                   id="email"
@@ -315,7 +310,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-gray-700">
-                  Phone *
+                  Phone
                 </Label>
                 <Input
                   id="phone"
@@ -337,7 +332,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="address" className="text-gray-700">
-                Address *
+                Address
               </Label>
               <Input
                 id="address"
@@ -359,7 +354,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="city" className="text-gray-700">
-                  City *
+                  City
                 </Label>
                 <Input
                   id="city"
@@ -379,7 +374,7 @@ export const AddSubLocationDialog: React.FC<AddSubLocationDialogProps> = ({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="country" className="text-gray-700">
-                  Country *
+                  Country
                 </Label>
                 <Input
                   id="country"

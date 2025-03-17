@@ -314,7 +314,7 @@ const TransferModule: React.FC = () => {
   const showingTransferItems = transferData.items.length > 0;
 
   return (
-    <div className="p-6 bg-white min-h-screen">
+    <div className="p-4 bg-gray-50 bg-white">
       <div className="max-w-[1200px] mx-auto">
         <h1 className="text-2xl font-bold mb-6">Transfer</h1>
 
