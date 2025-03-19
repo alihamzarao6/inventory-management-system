@@ -1,6 +1,6 @@
 "use client"
 import React from "react";
-import TransferModule from "@/components/transfer/TransferModule";
+import TransferModule from "@/components/transfer";
 
 const TransferIndex = () => {
   return (

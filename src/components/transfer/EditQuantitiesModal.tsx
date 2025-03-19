@@ -1,17 +1,19 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, Search, ChevronDown } from "lucide-react";
+import { ChevronLeft, Search, Check, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { TransferItem } from "@/types/transfers";
 import { cn } from "@/utils";
 
@@ -126,12 +128,6 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
       <DialogContent className="sm:max-w-[900px] bg-gray-100 p-0 overflow-hidden flex flex-col h-[90vh]">
         <DialogHeader className="bg-white px-6 py-4 border-b shrink-0">
           <div className="flex items-center">
-            <button
-              onClick={() => onOpenChange(false)}
-              className="mr-2 rounded-full p-1 hover:bg-gray-100"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
             <DialogTitle className="text-xl font-semibold text-gray-900">
               Edit Transfer Quantities
             </DialogTitle>
@@ -151,15 +147,52 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
               />
             </div>
 
-            <Button
-              variant="outline"
-              className="flex items-center gap-1"
-              onClick={handleRemoveSelected}
-              disabled={selectedItems.length === 0}
-            >
-              <span>Remove Selected</span>
-            </Button>
+            {selectedItems.length > 0 && (
+              <Button
+                variant="outline"
+                className="flex items-center gap-1 text-red-500"
+                onClick={handleRemoveSelected}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Remove Selected ({selectedItems.length})</span>
+              </Button>
+            )}
           </div>
+
+          {selectedItems.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-500">
+                Selected:
+              </span>
+              {selectedItems.map((itemKey) => {
+                const [productId, sourceLocationId] = itemKey.split("-");
+                const item = editedItems.find(
+                  (i) =>
+                    i.productId === productId &&
+                    i.sourceLocationId === sourceLocationId
+                );
+                if (!item) return null;
+
+                return (
+                  <Badge
+                    key={itemKey}
+                    variant="secondary"
+                    className="bg-blue-50 text-blue-700 flex items-center gap-1"
+                  >
+                    {item.productName}
+                    <button
+                      className="ml-1 rounded-full hover:bg-blue-200"
+                      onClick={() =>
+                        toggleItemSelection(productId, sourceLocationId)
+                      }
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
 
           <div className="bg-white rounded-lg overflow-hidden mb-6 flex-1 flex flex-col">
             <ScrollArea className="flex-1 h-full w-full">
@@ -178,25 +211,28 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                     </th>
                     <th className="px-4 py-4">Photo</th>
                     <th className="px-6 py-4">
-                      <div className="flex items-center gap-1">
+                      <div>
                         <span>Item Name</span>
                       </div>
                     </th>
                     <th className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        <span>Quantity</span>
-                        <span className="text-xs font-normal block">
-                          From Location
-                        </span>
+                      <div>
+                        <span>From Location</span>
                       </div>
                     </th>
-                    <th className="px-6 py-4">Transfer Amount</th>
-                    <th className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        <span>Quantity</span>
-                        <span className="text-xs font-normal block">
-                          To Location
-                        </span>
+                    <th className="px-6 py-4 text-center">
+                      <div>
+                        <span>Available</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-center">
+                      <div>
+                        <span>Transfer Quantity</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-center">
+                      <div>
+                        <span>Destination Qty</span>
                       </div>
                     </th>
                   </tr>
@@ -255,24 +291,21 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div>
-                              <div className="flex items-center">
-                                <span className="text-gray-500 mr-2">Old</span>
-                                <span className="text-gray-900">
-                                  {item.sourceQuantity}
-                                </span>
-                                <span className="text-gray-500 mx-2">→</span>
-                                <span className="text-gray-900">
-                                  {item.sourceQuantity - item.quantity}
-                                </span>
-                                <span className="text-gray-500 ml-2">New</span>
-                              </div>
-                              <div className="text-sm text-gray-500 mt-1">
-                                From: {item.sourceLocationName}
-                              </div>
+                            <div className="text-sm">
+                              {item.sourceLocationName}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex flex-col items-center">
+                              <span className="text-gray-900">
+                                {item.sourceQuantity}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Available
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
                             <Input
                               type="number"
                               min="0"
@@ -285,22 +318,26 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                                   e.target.value
                                 )
                               }
-                              className="w-24 text-center"
+                              className="w-24 text-center h-9 mx-auto"
                             />
+                            <div className="text-xs text-gray-500 mt-1">
+                              {item.sourceQuantity - item.quantity} will remain
+                            </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex flex-col items-center">
                               <div className="flex items-center">
-                                <span className="text-gray-500 mr-2">Old</span>
                                 <span className="text-gray-900">
                                   {item.destinationQuantity}
                                 </span>
                                 <span className="text-gray-500 mx-2">→</span>
-                                <span className="text-gray-900">
+                                <span className="text-gray-900 font-medium">
                                   {item.destinationQuantity + item.quantity}
                                 </span>
-                                <span className="text-gray-500 ml-2">New</span>
                               </div>
+                              <span className="text-xs text-gray-500">
+                                After transfer
+                              </span>
                             </div>
                           </td>
                         </tr>
@@ -309,7 +346,7 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                   ) : (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="px-6 py-10 text-center text-gray-500"
                       >
                         {searchTerm
@@ -323,7 +360,7 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
             </ScrollArea>
           </div>
 
-          <div className="flex justify-end gap-2 shrink-0">
+          <DialogFooter className="flex justify-end gap-2 shrink-0">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
@@ -333,11 +370,12 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                 editedItems.length === 0 ||
                 editedItems.every((item) => item.quantity === 0)
               }
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
+              <Check className="mr-2 h-4 w-4" />
               Confirm
             </Button>
-          </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

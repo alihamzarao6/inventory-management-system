@@ -1,17 +1,19 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { X, Search, ChevronDown } from "lucide-react";
+import { Search, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { TransferItem } from "@/types/transfers";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
@@ -41,14 +43,23 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
       sourceLocationId: string;
     }[]
   >([]);
+  const [availableProducts, setAvailableProducts] = useState<
+    {
+      product: any;
+      sourceLocationId: string;
+      sourceLocationName: string;
+      quantity: number;
+    }[]
+  >([]);
 
-  // Reset selections when modal opens
+  // Load available products when modal opens
   useEffect(() => {
     if (open) {
       setSearchTerm("");
       setSelectedProducts([]);
+      setAvailableProducts(getAvailableProducts());
     }
-  }, [open]);
+  }, [open, sourceLocationIds, existingItems]);
 
   // Get products available at the source locations
   const getAvailableProducts = () => {
@@ -103,11 +114,14 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
       });
     });
 
-    return availableProducts;
+    // Sort by product name
+    return availableProducts.sort((a, b) =>
+      a.product.name.localeCompare(b.product.name)
+    );
   };
 
   // Filter products by search term
-  const filteredProducts = getAvailableProducts().filter(
+  const filteredProducts = availableProducts.filter(
     (item) =>
       item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -206,6 +220,43 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
             />
           </div>
 
+          {selectedProducts.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-500">
+                Selected:
+              </span>
+              {selectedProducts.map((selected) => {
+                const item = availableProducts.find(
+                  (p) =>
+                    p.product.id === selected.productId &&
+                    p.sourceLocationId === selected.sourceLocationId
+                );
+                if (!item) return null;
+
+                return (
+                  <Badge
+                    key={`${selected.productId}-${selected.sourceLocationId}`}
+                    variant="secondary"
+                    className="bg-blue-50 text-blue-700 flex items-center gap-1"
+                  >
+                    {item.product.name}
+                    <button
+                      className="ml-1 rounded-full hover:bg-blue-200"
+                      onClick={() =>
+                        toggleProductSelection(
+                          selected.productId,
+                          selected.sourceLocationId
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+
           <div className="bg-white rounded-lg overflow-hidden mb-6 flex-1 flex flex-col">
             <ScrollArea className="flex-1 h-full w-full">
               <table className="w-full">
@@ -223,17 +274,13 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
                     </th>
                     <th className="px-4 py-4">Photo</th>
                     <th className="px-6 py-4">
-                      <div className="flex items-center gap-1">
+                      <div>
                         <span>Item Name</span>
-                        <div className="flex flex-col">
-                          <ChevronDown className="w-3 h-3 -mb-1" />
-                          <ChevronDown className="w-3 h-3 rotate-180" />
-                        </div>
                       </div>
                     </th>
                     <th className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        <span>Item Quantity</span>
+                      <div>
+                        <span>Quantity</span>
                         <span className="text-xs font-normal block">
                           From Location
                         </span>
@@ -256,7 +303,7 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
                           className={cn(
                             "transition-colors",
                             isSelected
-                              ? "bg-green-50"
+                              ? "bg-blue-50"
                               : index % 2 === 0
                               ? "bg-white"
                               : "bg-gray-50/30",
@@ -329,18 +376,19 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
             </ScrollArea>
           </div>
 
-          <div className="flex justify-end gap-2 shrink-0">
+          <DialogFooter className="flex justify-end gap-2 shrink-0">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button
               onClick={handleContinue}
               disabled={selectedProducts.length === 0}
-              className="bg-green-500 hover:bg-green-600 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
+              <Check className="mr-2 h-4 w-4" />
               Continue
             </Button>
-          </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

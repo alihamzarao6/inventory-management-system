@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import { Search, ArrowLeft, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -21,12 +22,14 @@ interface LocationFiltersProps {
   selectedLocationIds?: string[];
   onLocationSelect: (locationIds: string[], isCustomer?: boolean) => void;
   showCustomers?: boolean;
+  allowMultipleSelection?: boolean; // New prop to control multiple selection
 }
 
 const LocationFilters: React.FC<LocationFiltersProps> = ({
   selectedLocationIds = [],
   onLocationSelect,
   showCustomers = true,
+  allowMultipleSelection = true, // Default to true (multiple selection)
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMainLocation, setSelectedMainLocation] = useState<
@@ -83,7 +86,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
     });
 
     setSelectedLocations(initialLocations);
-  }, []);
+  }, [selectedLocationIds]);
 
   // Handle search input with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,12 +101,19 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
 
   // Toggle location selection
   const toggleLocationSelection = (location: LocationOption) => {
+    if (!allowMultipleSelection) {
+      // For single selection, replace the entire selection with just this one
+      setSelectedLocations([location]);
+      onLocationSelect([location.id], location.type === "Customer");
+      return;
+    }
+
     setSelectedLocations((prev) => {
       const isSelected = prev.some((loc) => loc.id === location.id);
 
       // Remove if already selected
       if (isSelected) {
-        return prev.filter((loc) => loc.id === location.id);
+        return prev.filter((loc) => loc.id !== location.id);
       }
 
       // Add if not already selected
@@ -113,7 +123,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
     // Update parent component with selected IDs
     const updatedIds = selectedLocations.some((loc) => loc.id === location.id)
       ? selectedLocations
-          .filter((loc) => loc.id === location.id)
+          .filter((loc) => loc.id !== location.id)
           .map((loc) => loc.id)
       : [...selectedLocations.map((loc) => loc.id), location.id];
 
@@ -122,6 +132,22 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
 
   // Select all locations in a warehouse
   const selectAllInWarehouse = (warehouseId: string) => {
+    if (!allowMultipleSelection) {
+      // For single selection, just select the warehouse itself
+      const warehouse = MOCK_LOCATIONS.find((loc) => loc.id === warehouseId);
+      if (warehouse) {
+        setSelectedLocations([
+          {
+            id: warehouse.id,
+            name: warehouse.name,
+            type: warehouse.type,
+          },
+        ]);
+        onLocationSelect([warehouse.id]);
+      }
+      return;
+    }
+
     // Get all sublocations for this warehouse
     const sublocations = MOCK_SUB_LOCATIONS.filter(
       (sub) => sub.parentId === warehouseId
@@ -303,38 +329,17 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                 Warehouses
               </h3>
               <div className="space-y-1">
-                {getFilteredLocations().warehouses.map((warehouse) => (
+                {getFilteredLocations().warehouses.map((loc) => (
                   <div
-                    key={warehouse.id}
+                    key={loc.id}
                     className="flex justify-between items-center px-2 py-2 rounded-md hover:bg-gray-100"
                   >
-                    <div className="flex items-center flex-1 gap-2">
-                      {/* <Checkbox
-                        checked={isLocationSelected(warehouse.id)}
-                        onCheckedChange={() =>
-                          toggleLocationSelection({
-                            id: warehouse.id,
-                            name: warehouse.name,
-                            type: warehouse.type,
-                          })
-                        }
-                        className="rounded"
-                      /> */}
-                      <span
-                        className="cursor-pointer"
-                        onClick={() => handleMainLocationSelect(warehouse.id)}
-                      >
-                        {warehouse.name}
-                      </span>
-                    </div>
-                    {/* <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
-                      onClick={() => selectAllInWarehouse(warehouse.id)}
+                    <div
+                      className="flex items-center flex-1 gap-2 cursor-pointer"
+                      onClick={() => handleMainLocationSelect(loc.id)}
                     >
-                      Select All
-                    </Button> */}
+                      {loc.name}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -348,38 +353,17 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                 Stores
               </h3>
               <div className="space-y-1">
-                {getFilteredLocations().stores.map((store) => (
+                {getFilteredLocations().stores.map((loc) => (
                   <div
-                    key={store.id}
+                    key={loc.id}
                     className="flex justify-between items-center px-2 py-2 rounded-md hover:bg-gray-100"
                   >
-                    <div className="flex items-center flex-1 gap-2">
-                      {/* <Checkbox
-                        checked={isLocationSelected(store.id)}
-                        onCheckedChange={() =>
-                          toggleLocationSelection({
-                            id: store.id,
-                            name: store.name,
-                            type: store.type,
-                          })
-                        }
-                        className="rounded"
-                      /> */}
-                      <span
-                        className="cursor-pointer"
-                        onClick={() => handleMainLocationSelect(store.id)}
-                      >
-                        {store.name}
-                      </span>
-                    </div>
-                    {/* <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
-                      onClick={() => selectAllInWarehouse(store.id)}
+                    <div
+                      className="flex items-center flex-1 gap-2 cursor-pointer"
+                      onClick={() => handleMainLocationSelect(loc.id)}
                     >
-                      Select All
-                    </Button> */}
+                      {loc.name}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -395,18 +379,34 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                 {MOCK_LOCATIONS.find((loc) => loc.id === selectedMainLocation)
                   ?.name || "Selected Location"}
               </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
-                onClick={() => selectAllInWarehouse(selectedMainLocation)}
-              >
-                Select All
-              </Button>
+              {allowMultipleSelection && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
+                  onClick={() => selectAllInWarehouse(selectedMainLocation)}
+                >
+                  Select All
+                </Button>
+              )}
             </div>
 
             {/* Parent location option */}
-            <div className="px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer bg-gray-50 border border-gray-100 mb-2">
+            <div
+              className="px-3 py-2.5 rounded-md bg-gray-50 border border-gray-100 mb-3 cursor-pointer"
+              onClick={() => {
+                const location = MOCK_LOCATIONS.find(
+                  (loc) => loc.id === selectedMainLocation
+                );
+                if (location) {
+                  toggleLocationSelection({
+                    id: location.id,
+                    name: location.name,
+                    type: location.type,
+                  });
+                }
+              }}
+            >
               <div className="flex items-center">
                 <Checkbox
                   checked={isLocationSelected(selectedMainLocation)}
@@ -439,28 +439,44 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
             </div>
 
             <div className="space-y-1">
-              {getSubLocations().map((sublocation) => (
+              {getSubLocations().map((subloc) => (
                 <div
-                  key={sublocation.id}
-                  className="flex items-center px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                  key={subloc.id}
+                  className="flex items-center px-3 py-2.5 rounded-md hover:bg-gray-100 cursor-pointer"
+                  onClick={() =>
+                    toggleLocationSelection({
+                      id: subloc.id,
+                      name: subloc.name,
+                      type: subloc.type,
+                      isSubLocation: true,
+                      parentId: subloc.parentId,
+                    })
+                  }
                 >
                   <Checkbox
-                    checked={isLocationSelected(sublocation.id)}
+                    checked={isLocationSelected(subloc.id)}
                     onCheckedChange={() =>
                       toggleLocationSelection({
-                        id: sublocation.id,
-                        name: sublocation.name,
-                        type: sublocation.type,
+                        id: subloc.id,
+                        name: subloc.name,
+                        type: subloc.type,
                         isSubLocation: true,
-                        parentId: sublocation.parentId,
+                        parentId: subloc.parentId,
                       })
                     }
                     className="rounded mr-2"
                   />
-                  {sublocation.name}
+                  {subloc.name}
                 </div>
               ))}
             </div>
+
+            {/* No sub-locations */}
+            {getSubLocations().length === 0 && (
+              <div className="py-3 text-center text-gray-500 text-sm">
+                No sub-locations found
+              </div>
+            )}
           </div>
         )}
 
@@ -475,6 +491,13 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                 <div
                   key={customer.id}
                   className="flex items-center px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                  onClick={() =>
+                    toggleLocationSelection({
+                      id: customer.id,
+                      name: customer.name,
+                      type: "Customer",
+                    })
+                  }
                 >
                   <Checkbox
                     checked={isLocationSelected(customer.id)}

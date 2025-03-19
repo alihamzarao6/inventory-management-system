@@ -1,10 +1,11 @@
-"use client"
+"use client";
 import React, { useState } from "react";
-import { Printer } from "lucide-react";
+import { Search, ArrowLeft, Printer, FileText, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import DeliveryNoteModal from "./DeliveryNoteModal";
 import InvoiceOptionsModal from "./InvoiceOptionsModal";
@@ -22,6 +23,7 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isDeliveryNoteOpen, setIsDeliveryNoteOpen] = useState(false);
   const [isInvoiceOptionsOpen, setIsInvoiceOptionsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("items");
 
   // Get location names
   const getSourceLocationNames = () => {
@@ -81,178 +83,256 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
     return `${day}.${month}.${year}`;
   };
 
+  // Mock transfer history data - would come from API in real app
+  const transferHistory = [
+    {
+      id: "log-1",
+      action: "Transfer Created",
+      user: "John Doe",
+      timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+      details: "Transfer initiated with 5 items",
+    },
+    {
+      id: "log-2",
+      action: "Items Added",
+      user: "John Doe",
+      timestamp: new Date(Date.now() - 3500000).toISOString(), // 58 min ago
+      details: "Added 5 items to transfer",
+    },
+    {
+      id: "log-3",
+      action: "Transfer Completed",
+      user: "John Doe",
+      timestamp: new Date().toISOString(), // now
+      details: "Transfer completed successfully",
+    },
+  ];
+
   return (
-    <div className="p-6 bg-white min-h-screen">
+    <div className="p-4 bg-white min-h-screen">
       <div className="max-w-[1200px] mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-green-500 mb-1">
-              Transfer Completed
-            </h1>
-            <div className="text-gray-600">
-              <p>From: {getSourceLocationNames()}</p>
-              <p>To: {getDestinationLocationName()}</p>
-            </div>
-          </div>
-          <div className="text-xl font-semibold mt-2 md:mt-0">
-            Date: {formatDate()}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Input
-              type="search"
-              placeholder="Search items..."
-              className="pl-4"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <Card className="mb-6 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                  <th className="px-4 py-4">Photo</th>
-                  <th className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <span>Item Name</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <span>Quantity</span>
-                      <span className="text-xs font-normal">From Location</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4">Transfer Amount</th>
-                  <th className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <span>Quantity</span>
-                      <span className="text-xs font-normal">To Location</span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.length > 0 ? (
-                  filteredItems.map((item, index) => (
-                    <tr
-                      key={`${item.productId}-${item.sourceLocationId}`}
-                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}
-                    >
-                      <td className="px-4 py-4">
-                        <Avatar className="h-12 w-12 rounded-md">
-                          <AvatarImage
-                            src={item.productImage}
-                            alt={item.productName}
-                            className="object-cover"
-                          />
-                          <AvatarFallback>
-                            {item.productName.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-gray-900 font-medium">
-                            {item.productName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {item.category}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="flex items-center">
-                            <span className="text-gray-900">
-                              {item.sourceQuantity}
-                            </span>
-                            <span className="text-gray-500 mx-2">→</span>
-                            <span className="text-gray-900">
-                              {item.sourceQuantity - item.quantity}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            From: {item.sourceLocationName}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
-                          {item.quantity}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="flex items-center">
-                            <span className="text-gray-900">
-                              {item.destinationQuantity}
-                            </span>
-                            <span className="text-gray-500 mx-2">→</span>
-                            <span className="text-gray-900">
-                              {item.destinationQuantity + item.quantity}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            To: {getDestinationLocationName()}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-6 py-8 text-center text-gray-500"
-                    >
-                      No items found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        {transfer.note && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Note:</h3>
-            <p className="text-gray-700">{transfer.note}</p>
-          </div>
-        )}
-
-        <div className="flex justify-between">
+        <div className="flex items-center mb-6 gap-4">
           <Button
             variant="outline"
-            className="text-gray-700"
             onClick={onBackToTransfers}
+            className="gap-2"
           >
-            Back to Transfers
+            <ArrowLeft className="h-4 w-4" />
+            Back to Transfer
           </Button>
 
-          <div className="flex gap-4">
-            <Button
-              variant="default"
-              className="bg-black text-white"
-              onClick={() => setIsDeliveryNoteOpen(true)}
-            >
-              Delivery Note
-            </Button>
-            <Button
-              variant="default"
-              className="bg-black text-white"
-              onClick={() => setIsInvoiceOptionsOpen(true)}
-            >
-              Invoice
-            </Button>
-          </div>
+          <div className="bg-gray-100 h-8 w-px mx-2"></div>
+
+          <h1 className="text-2xl font-semibold">Transfer Details</h1>
         </div>
+
+        <Card className="p-6 mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-green-500 mb-1">
+                Transfer #{transfer.id || "New"}
+              </h2>
+              <div className="text-gray-600">
+                <p>
+                  <span className="font-medium">Status:</span> Completed
+                </p>
+                <p>
+                  <span className="font-medium">From:</span>{" "}
+                  {getSourceLocationNames()}
+                </p>
+                <p>
+                  <span className="font-medium">To:</span>{" "}
+                  {getDestinationLocationName()}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <p className="text-gray-600">
+                <span className="font-medium">Date:</span> {formatDate()}
+              </p>
+              <div className="flex gap-4 mt-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setIsDeliveryNoteOpen(true)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Delivery Note
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setIsInvoiceOptionsOpen(true)}
+                >
+                  <Box className="h-4 w-4" />
+                  Invoice
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs for Items and History */}
+          <Tabs
+            defaultValue="items"
+            value={activeTab}
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="mb-4">
+              <TabsTrigger value="items">Items</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="items" className="space-y-4">
+              <div className="relative max-w-md mb-6">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Input
+                  type="search"
+                  placeholder="Search items..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="px-4 py-4">Photo</th>
+                      <th className="px-6 py-4">Item Name</th>
+                      <th className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span>Quantity</span>
+                          <span className="text-xs font-normal uppercase">
+                            From Location
+                          </span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4">Transfer Amount</th>
+                      <th className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span>Quantity</span>
+                          <span className="text-xs font-normal uppercase">
+                            To Location
+                          </span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.length > 0 ? (
+                      filteredItems.map((item, index) => (
+                        <tr
+                          key={`${item.productId}-${item.sourceLocationId}`}
+                          className={
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                          }
+                        >
+                          <td className="px-4 py-4">
+                            <Avatar className="h-12 w-12 rounded-md">
+                              <AvatarImage
+                                src={item.productImage}
+                                alt={item.productName}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                {item.productName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="text-gray-900 font-medium">
+                                {item.productName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {item.category}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="flex items-center">
+                                <span className="text-gray-900">
+                                  {item.sourceQuantity}
+                                </span>
+                                <span className="text-gray-500 mx-2">→</span>
+                                <span className="text-gray-900">
+                                  {item.sourceQuantity - item.quantity}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                From: {item.sourceLocationName}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-gray-900">
+                              {item.quantity}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="flex items-center">
+                                <span className="text-gray-900">
+                                  {item.destinationQuantity}
+                                </span>
+                                <span className="text-gray-500 mx-2">→</span>
+                                <span className="text-gray-900">
+                                  {item.destinationQuantity + item.quantity}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                To: {getDestinationLocationName()}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-8 text-center text-gray-500"
+                        >
+                          No items found matching your search
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {transfer.note && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-base font-semibold mb-2">Note:</h3>
+                  <p className="text-gray-700">{transfer.note}</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="history">
+              <div className="space-y-4">
+                {transferHistory.map((event) => (
+                  <div key={event.id} className="border-b pb-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{event.action}</h3>
+                        <p className="text-sm text-gray-500">{event.details}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{event.user}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(event.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
       </div>
 
       {/* Delivery Note Modal */}
