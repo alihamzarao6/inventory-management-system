@@ -513,6 +513,7 @@ const CustomerDetailPage = () => {
               : undefined
           }
           similarNameWarning={similarNameWarning}
+          setSimilarNameWarning={setSimilarNameWarning}
         />
       )}
 
