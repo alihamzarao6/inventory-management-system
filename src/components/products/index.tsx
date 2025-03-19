@@ -19,6 +19,7 @@ import {
   getProductsByCategory,
   getProductsByStockStatus,
   searchProductsByName,
+  getTotalProductQuantity,
 } from "@/constants/mockProducts";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import useToast from "@/hooks/useToast";
@@ -33,11 +34,14 @@ const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<ProductFiltersT>({});
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
     perPage: 5, // Changed to 5 to match requirements
     total: 0,
+  });
+  const [filters, setFilters] = useState<ProductFiltersT>({
+    categories: [],
+    locationIds: [],
   });
 
   // Modals
@@ -112,9 +116,10 @@ const ProductsPage = () => {
       );
     }
 
-    // Apply category filter
-    if (filters.category) {
-      result = result.filter((p) => p.category === filters.category);
+    // Apply multiple category filters
+    if (filters.categories && filters.categories.length > 0) {
+      // @ts-ignore
+      result = result.filter((p) => filters.categories?.includes(p.category));
     }
 
     // Apply stock status filter
@@ -141,30 +146,33 @@ const ProductsPage = () => {
       });
     }
 
-    // Apply location filter from dropdown (if not already filtered by URL param)
-    if (filters.locationId && !locationId) {
+    // Apply multiple location filters
+    if (filters.locationIds && filters.locationIds.length > 0 && !locationId) {
       if (filters.isCustomer) {
         // Filter for customer - would be implemented in a real API
-        result = result.filter((p) => p.id.includes("2")); // Just for demo
-      } else if (filters.locationId.startsWith("sub-")) {
-        // Sub-location filter
+        // This is just a placeholder for demo
         result = result.filter((p) =>
-          p.locations.some(
-            (loc) => loc.locationId === filters.locationId && loc.isSubLocation
+          filters.locationIds?.some(
+            // @ts-ignore
+            (id) => id.startsWith("cust-") && p.id.includes(id.substring(5))
           )
         );
       } else {
-        // Main location filter
+        // Filter products by any of the selected locations
         result = result.filter((p) =>
-          p.locations.some(
-            (loc) =>
-              (loc.locationId === filters.locationId && !loc.isSubLocation) ||
-              (loc.isSubLocation &&
-                MOCK_SUB_LOCATIONS.some(
-                  (sub) =>
-                    sub.id === loc.locationId &&
-                    sub.parentId === filters.locationId
-                ))
+          p.locations.some((loc) =>
+            filters.locationIds?.some((filterId) => {
+              // Check if the location matches directly
+              if (loc.locationId === filterId) return true;
+
+              // For main locations, check sub-locations
+              if (!loc.isSubLocation) return false;
+
+              // Check if product is in a sublocation of the selected main location
+              return MOCK_SUB_LOCATIONS.some(
+                (sub) => sub.id === loc.locationId && sub.parentId === filterId
+              );
+            })
           )
         );
       }
@@ -365,6 +373,116 @@ const ProductsPage = () => {
     pagination.page * pagination.perPage
   );
 
+  const handleExportCSV = () => {
+    // Prepare data for CSV export
+    const csvData = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      quantity: getTotalProductQuantity(p),
+      costPrice: p.costPrice,
+      wholesalePrice: p.wholesalePrice,
+      retailPrice: p.retailPrice,
+      createdAt: new Date(p.createdAt).toLocaleDateString(),
+    }));
+
+    // Convert to CSV
+    const headers = Object.keys(csvData[0]);
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) =>
+        headers
+          .map((header) =>
+            typeof (row as any)[header] === "string" &&
+            (row as any)[header].includes(",")
+              ? `"${(row as any)[header]}"`
+              : (row as any)[header]
+          )
+          .join(",")
+      ),
+    ].join("\n");
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "products.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Add CSV import functionality
+  const handleImportCSV = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const csvData = event.target?.result as string;
+      const lines = csvData.split("\n");
+      const headers = lines[0].split(",");
+
+      // Process CSV data
+      const importedProducts: Product[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+
+        const data = lines[i].split(",");
+        const product: Partial<Product> = {};
+
+        headers.forEach((header, index) => {
+          const value = data[index]?.trim();
+
+          switch (header.trim()) {
+            case "name":
+              product.name = value;
+              break;
+            case "category":
+              product.category = value;
+              break;
+            case "costPrice":
+              product.costPrice = parseFloat(value) || 0;
+              break;
+            case "wholesalePrice":
+              product.wholesalePrice = parseFloat(value) || 0;
+              break;
+            case "retailPrice":
+              product.retailPrice = parseFloat(value) || 0;
+              break;
+            // Add more mappings as needed
+          }
+        });
+
+        // Generate missing fields
+        if (product.name) {
+          const newProduct: Product = {
+            id: `prod-${Date.now()}-${i}`,
+            name: product.name,
+            category: product.category || "Other",
+            image: "", // Default empty image
+            costPrice: product.costPrice || 0,
+            wholesalePrice: product.wholesalePrice || 0,
+            retailPrice: product.retailPrice || 0,
+            retailPriceUSD: (product.retailPrice || 0) / 17.5,
+            locations: [],
+            reorderLevel: 5,
+            createdAt: new Date().toISOString(),
+          };
+
+          importedProducts.push(newProduct);
+        }
+      }
+
+      // Add imported products to state
+      if (importedProducts.length > 0) {
+        setProducts((prev) => [...importedProducts, ...prev]);
+        showToast(`Imported ${importedProducts.length} products`, "success");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <>
       <div className="p-4 bg-gray-50 min-h-screen">
@@ -398,7 +516,12 @@ const ProductsPage = () => {
         </div>
 
         {/* Filters */}
-        <ProductFilters filters={filters} onFilterChange={handleFilterChange} />
+        <ProductFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onExportCSV={handleExportCSV}
+          onImportCSV={handleImportCSV}
+        />
 
         {/* Products Table */}
         <ProductsTable
@@ -439,6 +562,7 @@ const ProductsPage = () => {
                 : undefined
             }
             similarNameWarning={similarNameWarning}
+            setSimilarNameWarning={setSimilarNameWarning}
           />
         )}
 

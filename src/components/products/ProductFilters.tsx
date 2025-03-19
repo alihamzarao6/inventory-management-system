@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Search, ChevronDown, ArrowLeft } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  ArrowLeft,
+  Download,
+  Upload,
+  X,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -10,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   PRODUCT_CATEGORIES,
   STOCK_STATUS,
@@ -22,11 +31,15 @@ import { cn } from "@/utils";
 interface ProductFiltersProps {
   filters: ProductFiltersT;
   onFilterChange: (filters: ProductFiltersT) => void;
+  onExportCSV?: () => void;
+  onImportCSV?: (file: File) => void;
 }
 
 const ProductFilters: React.FC<ProductFiltersProps> = ({
   filters,
   onFilterChange,
+  onExportCSV,
+  onImportCSV,
 }) => {
   const [searchValue, setSearchValue] = useState(filters.search || "");
   const [isGeneralFilterOpen, setIsGeneralFilterOpen] = useState(false);
@@ -37,7 +50,25 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   const [selectedDateRange, setSelectedDateRange] = useState<{
     from?: Date;
     to?: Date;
-  }>({});
+  }>({
+    from: filters.dateRange?.startDate,
+    to: filters.dateRange?.endDate,
+  });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    filters.categories || []
+  );
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>(
+    filters.locationIds || []
+  );
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Initialize date range when filters change externally
+  useEffect(() => {
+    setSelectedDateRange({
+      from: filters.dateRange?.startDate,
+      to: filters.dateRange?.endDate,
+    });
+  }, [filters.dateRange]);
 
   // Debounced search
   useEffect(() => {
@@ -50,22 +81,37 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
     return () => clearTimeout(timer);
   }, [searchValue, filters, onFilterChange]);
 
-  // Handler for category change
-  const handleCategoryChange = (category: string) => {
-    onFilterChange({ ...filters, category });
+  // Handler for category change - multiple selection
+  const handleCategoryToggle = (category: string) => {
+    const updatedCategories = selectedCategories.includes(category)
+      ? selectedCategories.filter((c) => c !== category)
+      : [...selectedCategories, category];
+
+    setSelectedCategories(updatedCategories);
+    onFilterChange({ ...filters, categories: updatedCategories });
+  };
+
+  // Apply selected categories
+  const applyCategories = () => {
+    onFilterChange({ ...filters, categories: selectedCategories });
     setIsGeneralFilterOpen(false);
     setGeneralFilterView("main");
   };
 
-  // Handler for stock status change
-  const handleStockStatusChange = (
+  // Handler for stock status change with toggle
+  const handleStockStatusToggle = (
     stockStatus: "In Stock" | "Out of Stock"
   ) => {
-    onFilterChange({ ...filters, stockStatus });
-    setIsGeneralFilterOpen(false);
+    // If same status is already selected, clear it
+    if (filters.stockStatus === stockStatus) {
+      onFilterChange({ ...filters, stockStatus: undefined });
+    } else {
+      // Otherwise apply the new status
+      onFilterChange({ ...filters, stockStatus: stockStatus });
+    }
   };
 
-  // Handler for date range selection
+  // Handler for date range selection from custom calendar
   const handleDateRangeChange = useCallback(() => {
     if (selectedDateRange.from && selectedDateRange.to) {
       onFilterChange({
@@ -81,16 +127,29 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
     }
   }, [selectedDateRange, filters, onFilterChange]);
 
-  // Handle predefined date ranges
+  // Handle predefined date ranges with toggle functionality
   const handlePredefinedDateRange = (rangeType: string) => {
+    // If this range is already selected, clear it
+    if (filters.dateRange?.type === rangeType) {
+      onFilterChange({
+        ...filters,
+        dateRange: undefined,
+      });
+      setSelectedDateRange({});
+      return;
+    }
+
+    // Otherwise, set the new date range
     const now = new Date();
     let startDate: Date | undefined;
     let endDate: Date | undefined;
 
     switch (rangeType) {
       case "today":
-        startDate = new Date(now.setHours(0, 0, 0, 0));
-        endDate = new Date(now.setHours(23, 59, 59, 999));
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
         break;
       case "yesterday":
         startDate = new Date(now);
@@ -122,6 +181,9 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
     }
 
     if (startDate && endDate) {
+      // Update both state and filters
+      setSelectedDateRange({ from: startDate, to: endDate });
+
       onFilterChange({
         ...filters,
         dateRange: {
@@ -130,39 +192,51 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           endDate,
         },
       });
-      setIsGeneralFilterOpen(false);
-      setGeneralFilterView("main");
     }
   };
-
-  // Effect for date range selection
-  useEffect(() => {
-    if (selectedDateRange.from && selectedDateRange.to) {
-      handleDateRangeChange();
-    }
-  }, [selectedDateRange, handleDateRangeChange]);
 
   // Clear all filters
   const clearFilters = () => {
     onFilterChange({});
     setSearchValue("");
+    setSelectedCategories([]);
+    setSelectedLocationIds([]);
+    setSelectedDateRange({});
     setIsGeneralFilterOpen(false);
     setGeneralFilterView("main");
   };
 
-  // Handle location selection
-  const handleLocationSelect = (locationId: string, isCustomer?: boolean) => {
+  // Handle location selections
+  const handleLocationSelect = (
+    locationIds: string[],
+    isCustomer?: boolean
+  ) => {
+    setSelectedLocationIds(locationIds);
     onFilterChange({
       ...filters,
-      locationId: locationId,
-      isCustomer: isCustomer || false,
+      locationIds: locationIds,
+      isCustomer: (locationIds.length > 0 && isCustomer) || false,
     });
-    setIsLocationFilterOpen(false);
+  };
+
+  // Handle file import
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && onImportCSV) {
+      onImportCSV(e.target.files[0]);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   // Get active filter label
   const getGeneralFilterLabel = () => {
-    if (filters.category) return filters.category;
+    if (selectedCategories.length > 0) {
+      return selectedCategories.length === 1
+        ? selectedCategories[0]
+        : `${selectedCategories.length} Categories`;
+    }
     if (filters.stockStatus) return filters.stockStatus;
     if (filters.dateRange?.type) {
       const dateOption = DATE_RANGE_OPTIONS.find(
@@ -175,11 +249,36 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
 
   // Get location filter label
   const getLocationFilterLabel = () => {
-    if (filters.locationId) {
-      // Logic to get location name based on ID
-      return "Selected Location";
+    if (selectedLocationIds.length > 0) {
+      return selectedLocationIds.length === 1
+        ? "1 Location"
+        : `${selectedLocationIds.length} Locations`;
     }
     return "Filter by location";
+  };
+
+  // Remove a category from selection
+  const removeCategory = (category: string) => {
+    const newCategories = selectedCategories.filter((c) => c !== category);
+    setSelectedCategories(newCategories);
+    onFilterChange({ ...filters, categories: newCategories });
+  };
+
+  // Handle calendar date selection directly
+  const handleCalendarSelect = (range: { from?: Date; to?: Date } | undefined) => {
+      if (range) {
+        setSelectedDateRange(range);
+      }
+    };
+
+  // Handle clear custom date range - UPDATED
+  const clearCustomDateRange = () => {
+    setSelectedDateRange({});
+    // Also clear the dateRange from filters
+    onFilterChange({
+      ...filters,
+      dateRange: undefined,
+    });
   };
 
   return (
@@ -212,12 +311,10 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               variant="outline"
               className={cn(
                 "h-12 px-4 border-gray-200 bg-white flex items-center justify-between min-w-[140px]",
-                Object.keys(filters).some(
-                  (key) =>
-                    key === "category" ||
-                    key === "stockStatus" ||
-                    key === "dateRange"
-                ) && "bg-blue-50 text-blue-600 border-blue-200"
+                (selectedCategories.length > 0 ||
+                  filters.stockStatus ||
+                  filters.dateRange) &&
+                  "bg-blue-50 text-blue-600 border-blue-200"
               )}
             >
               <span>{getGeneralFilterLabel()}</span>
@@ -225,15 +322,33 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-80 p-0 max-h-[400px] overflow-hidden"
+            className="w-80 p-0 max-h-[600px] overflow-y-auto" // Increased height
             align="end"
-            onInteractOutside={(e) => {
-              // Don't close when clicking on calendar
-              if ((e.target as HTMLElement).closest(".react-calendar")) {
-                e.preventDefault();
-              }
-            }}
           >
+            {/* Selected Categories Display */}
+            {selectedCategories.length > 0 && generalFilterView === "main" && (
+              <div className="px-4 pt-4">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedCategories.map((category) => (
+                    <Badge
+                      key={category}
+                      variant="secondary"
+                      className="flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    >
+                      {category}
+                      <button
+                        className="ml-1 rounded-full hover:bg-blue-200"
+                        onClick={() => removeCategory(category)}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <Separator className="my-2" />
+              </div>
+            )}
+
             {generalFilterView === "main" && (
               <div className="p-4">
                 {/* Main Filter Options */}
@@ -246,34 +361,34 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                     <ChevronDown className="h-4 w-4 opacity-50 -rotate-90" />
                   </div>
                   <div
-                    onClick={() => handleStockStatusChange("In Stock")}
+                    onClick={() => handleStockStatusToggle("In Stock")}
                     className={cn(
                       "flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded-md",
                       filters.stockStatus === "In Stock" && "bg-blue-50"
                     )}
                   >
-                    <div
-                      className={`h-2 w-2 rounded-full mr-2 ${
-                        filters.stockStatus === "In Stock"
-                          ? "bg-blue-500"
-                          : "bg-gray-200"
-                      }`}
+                    <Checkbox
+                      checked={filters.stockStatus === "In Stock"}
+                      onCheckedChange={() =>
+                        handleStockStatusToggle("In Stock")
+                      }
+                      className="mr-2 rounded"
                     />
                     <span>In Stock</span>
                   </div>
                   <div
-                    onClick={() => handleStockStatusChange("Out of Stock")}
+                    onClick={() => handleStockStatusToggle("Out of Stock")}
                     className={cn(
                       "flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded-md",
                       filters.stockStatus === "Out of Stock" && "bg-blue-50"
                     )}
                   >
-                    <div
-                      className={`h-2 w-2 rounded-full mr-2 ${
-                        filters.stockStatus === "Out of Stock"
-                          ? "bg-blue-500"
-                          : "bg-gray-200"
-                      }`}
+                    <Checkbox
+                      checked={filters.stockStatus === "Out of Stock"}
+                      onCheckedChange={() =>
+                        handleStockStatusToggle("Out of Stock")
+                      }
+                      className="mr-2 rounded"
                     />
                     <span>Out of Stock</span>
                   </div>
@@ -286,12 +401,9 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                   </div>
                 </div>
 
-                {Object.keys(filters).some(
-                  (key) =>
-                    key === "category" ||
-                    key === "stockStatus" ||
-                    key === "dateRange"
-                ) && (
+                {(selectedCategories.length > 0 ||
+                  filters.stockStatus ||
+                  filters.dateRange) && (
                   <>
                     <Separator className="my-4" />
                     <Button
@@ -309,17 +421,17 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
 
             {generalFilterView === "category" && (
               <div className="p-4">
-                <div className="flex items-center mb-4">
+                <div className="flex items-center mb-4 gap-3">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => setGeneralFilterView("main")}
-                    className="p-0"
+                    className="py-1 px-2"
                   >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    <ArrowLeft className="h-4 w-4 mr-1" />
                     Back
                   </Button>
-                  <h3 className="font-medium text-sm ml-2">Category</h3>
+                  <h3 className="font-medium text-sm">Category</h3>
                 </div>
 
                 <ScrollArea className="max-h-[230px] overflow-y-auto pr-4">
@@ -329,38 +441,46 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                         key={category}
                         className={cn(
                           "flex items-center cursor-pointer p-2 hover:bg-gray-50 rounded-md",
-                          filters.category === category && "bg-blue-50"
+                          selectedCategories.includes(category) && "bg-blue-50"
                         )}
-                        onClick={() => handleCategoryChange(category)}
+                        onClick={() => handleCategoryToggle(category)}
                       >
-                        <div
-                          className={`h-2 w-2 rounded-full mr-2 ${
-                            filters.category === category
-                              ? "bg-blue-500"
-                              : "bg-gray-200"
-                          }`}
+                        <Checkbox
+                          checked={selectedCategories.includes(category)}
+                          onCheckedChange={() => handleCategoryToggle(category)}
+                          className="mr-2 rounded"
                         />
                         <span>{category}</span>
                       </div>
                     ))}
                   </div>
                 </ScrollArea>
+
+                <div className="mt-4 pt-3 border-t flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={applyCategories}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Apply Filters
+                  </Button>
+                </div>
               </div>
             )}
 
             {generalFilterView === "dateRange" && (
-              <div className="p-4 max-h-[350px] overflow-y-auto">
-                <div className="flex items-center mb-4">
+              <div className="p-4 min-h-[520px] overflow-y-auto">
+                <div className="flex items-center mb-4 gap-3">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => setGeneralFilterView("main")}
-                    className="p-0"
+                    className="py-1 px-2"
                   >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    <ArrowLeft className="h-4 w-4 mr-1" />
                     Back
                   </Button>
-                  <h3 className="font-medium text-sm ml-2">Date Range</h3>
+                  <h3 className="font-medium text-sm">Date Range</h3>
                 </div>
 
                 <div className="space-y-2 mb-4">
@@ -374,12 +494,12 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                         )}
                         onClick={() => handlePredefinedDateRange(option.id)}
                       >
-                        <div
-                          className={`h-2 w-2 rounded-full mr-2 ${
-                            filters.dateRange?.type === option.id
-                              ? "bg-blue-500"
-                              : "bg-gray-200"
-                          }`}
+                        <Checkbox
+                          checked={filters.dateRange?.type === option.id}
+                          onCheckedChange={() =>
+                            handlePredefinedDateRange(option.id)
+                          }
+                          className="mr-2 rounded"
                         />
                         <span>{option.label}</span>
                       </div>
@@ -388,30 +508,43 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                 </div>
 
                 <Separator className="my-2" />
-                <h4 className="text-sm font-medium my-2">Custom Range</h4>
-                <div className="border rounded-md p-3 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium">Custom Range</h4>
+                  {(selectedDateRange.from || selectedDateRange.to) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 text-xs"
+                      onClick={clearCustomDateRange}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                <div className="border rounded-md p-3 bg-white">
                   <Calendar
                     mode="range"
                     selected={
-                      selectedDateRange.from && selectedDateRange.to
+                      selectedDateRange.from || selectedDateRange.to
                         ? {
                             from: selectedDateRange.from,
                             to: selectedDateRange.to,
                           }
                         : undefined
                     }
-                    onSelect={setSelectedDateRange as any}
-                    className="rounded-md border"
+                    onSelect={handleCalendarSelect}
+                    className="p-0"
                   />
-                  <div className="mt-2 flex justify-end">
+                  <div className="mt-4 flex justify-end sticky bottom-0 bg-white py-2">
                     <Button
                       size="sm"
                       disabled={
-                        !selectedDateRange.from || !selectedDateRange.to
+                        !selectedDateRange.from && !selectedDateRange.to
                       }
                       onClick={handleDateRangeChange}
+                      className="bg-blue-600 hover:bg-blue-700"
                     >
-                      Apply
+                      Apply Date Range
                     </Button>
                   </div>
                 </div>
@@ -432,7 +565,8 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               variant="outline"
               className={cn(
                 "h-12 px-4 border-gray-200 bg-white flex items-center justify-between min-w-[180px]",
-                filters.locationId && "bg-blue-50 text-blue-600 border-blue-200"
+                selectedLocationIds.length > 0 &&
+                  "bg-blue-50 text-blue-600 border-blue-200"
               )}
             >
               <span>{getLocationFilterLabel()}</span>
@@ -440,15 +574,49 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-80 p-0 max-h-[400px] overflow-hidden"
+            className="w-80 p-0 max-h-[600px] overflow-y-auto" // Increased height
             align="end"
           >
             <LocationFilters
-              selectedLocationId={filters.locationId}
+              selectedLocationIds={selectedLocationIds}
               onLocationSelect={handleLocationSelect}
             />
           </PopoverContent>
         </Popover>
+      </div>
+
+      {/* Import/Export Buttons */}
+      <div className="flex gap-2">
+        {onExportCSV && (
+          <Button
+            variant="outline"
+            className="h-12 px-4 border-gray-200 bg-white"
+            onClick={onExportCSV}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        )}
+
+        {onImportCSV && (
+          <>
+            <Button
+              variant="outline"
+              className="h-12 px-4 border-gray-200 bg-white"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept=".csv"
+              className="hidden"
+            />
+          </>
+        )}
       </div>
     </div>
   );

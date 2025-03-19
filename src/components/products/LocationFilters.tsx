@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
-import { MOCK_CUSTOMERS } from "@/constants/mockProducts";
+import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+
+interface LocationOption {
+  id: string;
+  name: string;
+  type: string;
+  isSubLocation?: boolean;
+  parentId?: string;
+}
 
 interface LocationFiltersProps {
-  selectedLocationId?: string;
-  onLocationSelect: (locationId: string, isCustomer?: boolean) => void;
+  selectedLocationIds?: string[];
+  onLocationSelect: (locationIds: string[], isCustomer?: boolean) => void;
+  showCustomers?: boolean;
 }
 
 const LocationFilters: React.FC<LocationFiltersProps> = ({
-  selectedLocationId,
+  selectedLocationIds = [],
   onLocationSelect,
+  showCustomers = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMainLocation, setSelectedMainLocation] = useState<
@@ -23,10 +35,54 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
   const [viewMode, setViewMode] = useState<
     "locations" | "sublocations" | "customers"
   >("locations");
+  const [selectedLocations, setSelectedLocations] = useState<LocationOption[]>(
+    []
+  );
 
-  // Reset to locations view when component is mounted
+  // Initialize selected locations from props
   useEffect(() => {
-    setViewMode("locations");
+    const initialLocations: LocationOption[] = [];
+
+    selectedLocationIds.forEach((id) => {
+      // Check if it's a warehouse or store
+      const mainLocation = MOCK_LOCATIONS.find((loc) => loc.id === id);
+      if (mainLocation) {
+        initialLocations.push({
+          id: mainLocation.id,
+          name: mainLocation.name,
+          type: mainLocation.type,
+        });
+        return;
+      }
+
+      // Check if it's a sublocation
+      const subLocation = MOCK_SUB_LOCATIONS.find((sub) => sub.id === id);
+      if (subLocation) {
+        const parent = MOCK_LOCATIONS.find(
+          (loc) => loc.id === subLocation.parentId
+        );
+        initialLocations.push({
+          id: subLocation.id,
+          name: subLocation.name,
+          type: subLocation.type,
+          isSubLocation: true,
+          parentId: subLocation.parentId,
+        });
+        return;
+      }
+
+      // Check if it's a customer
+      const customer = MOCK_CUSTOMERS.find((cust) => cust.id === id);
+      if (customer) {
+        initialLocations.push({
+          id: customer.id,
+          name: customer.name,
+          type: "Customer",
+        });
+      }
+    });
+
+    setSelectedLocations(initialLocations);
   }, []);
 
   // Handle search input with debounce
@@ -34,36 +90,66 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
     setSearchQuery(e.target.value);
   };
 
-  // Handle main location selection
+  // Handle main location selection to show sublocations
   const handleMainLocationSelect = (locationId: string) => {
     setSelectedMainLocation(locationId);
     setViewMode("sublocations");
   };
 
-  // Handle selecting a warehouse/store to view all its products
-  const handleViewAllProducts = (locationId: string) => {
-    onLocationSelect(locationId);
+  // Toggle location selection
+  const toggleLocationSelection = (location: LocationOption) => {
+    setSelectedLocations((prev) => {
+      const isSelected = prev.some((loc) => loc.id === location.id);
+
+      // Remove if already selected
+      if (isSelected) {
+        return prev.filter((loc) => loc.id === location.id);
+      }
+
+      // Add if not already selected
+      return [...prev, location];
+    });
+
+    // Update parent component with selected IDs
+    const updatedIds = selectedLocations.some((loc) => loc.id === location.id)
+      ? selectedLocations
+          .filter((loc) => loc.id === location.id)
+          .map((loc) => loc.id)
+      : [...selectedLocations.map((loc) => loc.id), location.id];
+
+    onLocationSelect(updatedIds, location.type === "Customer");
   };
 
-  // Handle selecting a sublocation to view its products
-  const handleSubLocationSelect = (subLocationId: string) => {
-    onLocationSelect(subLocationId);
-  };
+  // Select all locations in a warehouse
+  const selectAllInWarehouse = (warehouseId: string) => {
+    // Get all sublocations for this warehouse
+    const sublocations = MOCK_SUB_LOCATIONS.filter(
+      (sub) => sub.parentId === warehouseId
+    ).map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      type: sub.type,
+      isSubLocation: true,
+      parentId: sub.parentId,
+    }));
 
-  // Handle customer selection
-  const handleCustomerSelect = (customerId: string) => {
-    onLocationSelect(customerId, true);
-  };
+    // Add the main warehouse
+    const warehouse = MOCK_LOCATIONS.find((loc) => loc.id === warehouseId);
+    const allLocations = warehouse
+      ? [
+          { id: warehouse.id, name: warehouse.name, type: warehouse.type },
+          ...sublocations,
+        ]
+      : sublocations;
 
-  // Get selected location name
-  const getSelectedLocationName = () => {
-    if (selectedMainLocation) {
-      return (
-        MOCK_LOCATIONS.find((loc) => loc.id === selectedMainLocation)?.name ||
-        "Selected Location"
-      );
-    }
-    return "";
+    // Combine with existing selections (excluding this warehouse and its subs)
+    const existingOtherLocations = selectedLocations.filter(
+      (loc) => loc.id !== warehouseId && loc.parentId !== warehouseId
+    );
+
+    const newSelections = [...existingOtherLocations, ...allLocations];
+    setSelectedLocations(newSelections);
+    onLocationSelect(newSelections.map((loc) => loc.id));
   };
 
   // Filter locations based on search
@@ -107,24 +193,39 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
     );
   };
 
-    const clearFilters = () => {
-      onLocationSelect("");
-      setSearchQuery("");
-      setSelectedMainLocation("");
-      setViewMode("locations");
-    };
+  const clearFilters = () => {
+    setSelectedLocations([]);
+    onLocationSelect([]);
+    setSearchQuery("");
+    setSelectedMainLocation(null);
+    setViewMode("locations");
+  };
+
+  // Check if location is selected
+  const isLocationSelected = (id: string) => {
+    return selectedLocations.some((loc) => loc.id === id);
+  };
+
+  // Remove a single selection
+  const removeSelection = (id: string) => {
+    const newSelections = selectedLocations.filter((loc) => loc.id !== id);
+    setSelectedLocations(newSelections);
+    onLocationSelect(newSelections.map((loc) => loc.id));
+  };
 
   return (
     <div className="py-2">
       {/* Back Navigation for sublocations view */}
       {viewMode === "sublocations" && (
-        <button
-          className="flex items-center text-sm mb-3 px-3 py-1 hover:bg-gray-100 rounded-md font-medium"
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center text-sm mb-2 mx-3"
           onClick={() => setViewMode("locations")}
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Locations
-        </button>
+        </Button>
       )}
 
       {/* Search Input */}
@@ -141,6 +242,29 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
         </div>
       </div>
 
+      {/* Selected Locations Display */}
+      {selectedLocations.length > 0 && (
+        <div className="px-4 mb-3">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {selectedLocations.map((location) => (
+              <Badge
+                key={location.id}
+                variant="secondary"
+                className="flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100"
+              >
+                {location.name}
+                <button
+                  className="ml-1 rounded-full hover:bg-blue-200"
+                  onClick={() => removeSelection(location.id)}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Nav Tabs - Only show in main view */}
       {viewMode !== "sublocations" && (
         <div className="flex border-b mb-3">
@@ -154,16 +278,18 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
           >
             Locations
           </button>
-          <button
-            className={`px-4 py-2 text-sm font-medium ${
-              viewMode === "customers"
-                ? "text-gray-900 border-b-2 border-gray-900"
-                : "text-gray-500"
-            }`}
-            onClick={() => setViewMode("customers")}
-          >
-            Customers
-          </button>
+          {showCustomers && (
+            <button
+              className={`px-4 py-2 text-sm font-medium ${
+                viewMode === "customers"
+                  ? "text-gray-900 border-b-2 border-gray-900"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setViewMode("customers")}
+            >
+              Customers
+            </button>
+          )}
         </div>
       )}
 
@@ -180,22 +306,35 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                 {getFilteredLocations().warehouses.map((warehouse) => (
                   <div
                     key={warehouse.id}
-                    className="flex justify-between items-center px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                    className="flex justify-between items-center px-2 py-2 rounded-md hover:bg-gray-100"
                   >
-                    <div
-                      className="flex-1"
-                      onClick={() => handleMainLocationSelect(warehouse.id)}
-                    >
-                      {warehouse.name}
+                    <div className="flex items-center flex-1 gap-2">
+                      {/* <Checkbox
+                        checked={isLocationSelected(warehouse.id)}
+                        onCheckedChange={() =>
+                          toggleLocationSelection({
+                            id: warehouse.id,
+                            name: warehouse.name,
+                            type: warehouse.type,
+                          })
+                        }
+                        className="rounded"
+                      /> */}
+                      <span
+                        className="cursor-pointer"
+                        onClick={() => handleMainLocationSelect(warehouse.id)}
+                      >
+                        {warehouse.name}
+                      </span>
                     </div>
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
-                      onClick={() => handleViewAllProducts(warehouse.id)}
+                      onClick={() => selectAllInWarehouse(warehouse.id)}
                     >
-                      All
-                    </Button>
+                      Select All
+                    </Button> */}
                   </div>
                 ))}
               </div>
@@ -212,22 +351,35 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
                 {getFilteredLocations().stores.map((store) => (
                   <div
                     key={store.id}
-                    className="flex justify-between items-center px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                    className="flex justify-between items-center px-2 py-2 rounded-md hover:bg-gray-100"
                   >
-                    <div
-                      className="flex-1"
-                      onClick={() => handleMainLocationSelect(store.id)}
-                    >
-                      {store.name}
+                    <div className="flex items-center flex-1 gap-2">
+                      {/* <Checkbox
+                        checked={isLocationSelected(store.id)}
+                        onCheckedChange={() =>
+                          toggleLocationSelection({
+                            id: store.id,
+                            name: store.name,
+                            type: store.type,
+                          })
+                        }
+                        className="rounded"
+                      /> */}
+                      <span
+                        className="cursor-pointer"
+                        onClick={() => handleMainLocationSelect(store.id)}
+                      >
+                        {store.name}
+                      </span>
                     </div>
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
-                      onClick={() => handleViewAllProducts(store.id)}
+                      onClick={() => selectAllInWarehouse(store.id)}
                     >
-                      All
-                    </Button>
+                      Select All
+                    </Button> */}
                   </div>
                 ))}
               </div>
@@ -238,20 +390,51 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
         {/* Sub-locations List */}
         {viewMode === "sublocations" && selectedMainLocation && (
           <div className="px-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 px-2">
-              {getSelectedLocationName()}
-            </h3>
+            <div className="flex flex-row justify-between items-center">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 px-2">
+                {MOCK_LOCATIONS.find((loc) => loc.id === selectedMainLocation)
+                  ?.name || "Selected Location"}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 h-7"
+                onClick={() => selectAllInWarehouse(selectedMainLocation)}
+              >
+                Select All
+              </Button>
+            </div>
 
             {/* Parent location option */}
-            <div
-              className="px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer bg-gray-50 border border-gray-100 mb-2"
-              onClick={() => handleViewAllProducts(selectedMainLocation)}
-            >
-              <div className="font-medium">
-                All in {getSelectedLocationName()}
-              </div>
-              <div className="text-xs text-gray-500">
-                View all items in this location
+            <div className="px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer bg-gray-50 border border-gray-100 mb-2">
+              <div className="flex items-center">
+                <Checkbox
+                  checked={isLocationSelected(selectedMainLocation)}
+                  onCheckedChange={() => {
+                    const location = MOCK_LOCATIONS.find(
+                      (loc) => loc.id === selectedMainLocation
+                    );
+                    if (location) {
+                      toggleLocationSelection({
+                        id: location.id,
+                        name: location.name,
+                        type: location.type,
+                      });
+                    }
+                  }}
+                  className="rounded mr-2"
+                />
+                <div>
+                  <div className="font-medium">
+                    All in{" "}
+                    {MOCK_LOCATIONS.find(
+                      (loc) => loc.id === selectedMainLocation
+                    )?.name || "Selected Location"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Select the main location
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -259,9 +442,21 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
               {getSubLocations().map((sublocation) => (
                 <div
                   key={sublocation.id}
-                  className="px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleSubLocationSelect(sublocation.id)}
+                  className="flex items-center px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
                 >
+                  <Checkbox
+                    checked={isLocationSelected(sublocation.id)}
+                    onCheckedChange={() =>
+                      toggleLocationSelection({
+                        id: sublocation.id,
+                        name: sublocation.name,
+                        type: sublocation.type,
+                        isSubLocation: true,
+                        parentId: sublocation.parentId,
+                      })
+                    }
+                    className="rounded mr-2"
+                  />
                   {sublocation.name}
                 </div>
               ))}
@@ -279,9 +474,19 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
               {getFilteredCustomers().map((customer) => (
                 <div
                   key={customer.id}
-                  className="px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleCustomerSelect(customer.id)}
+                  className="flex items-center px-2 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
                 >
+                  <Checkbox
+                    checked={isLocationSelected(customer.id)}
+                    onCheckedChange={() =>
+                      toggleLocationSelection({
+                        id: customer.id,
+                        name: customer.name,
+                        type: "Customer",
+                      })
+                    }
+                    className="rounded mr-2"
+                  />
                   {customer.name}
                 </div>
               ))}
@@ -289,16 +494,18 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
           </div>
         )}
 
-        <>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-50 mb-2"
-            onClick={clearFilters}
-          >
-            Clear All Filters
-          </Button>
-        </>
+        {selectedLocations.length > 0 && (
+          <div className="px-2 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-50 mb-2"
+              onClick={clearFilters}
+            >
+              Clear All Selections
+            </Button>
+          </div>
+        )}
       </ScrollArea>
     </div>
   );

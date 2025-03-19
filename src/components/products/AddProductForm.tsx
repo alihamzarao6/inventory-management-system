@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useRef } from "react";
 import { X, Upload, AlertCircle } from "lucide-react";
 import { z } from "zod";
@@ -22,13 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/utils";
-import { ProductFormData } from "@/types/products";
-import { PRODUCT_CATEGORIES } from "@/constants/mockProducts";
+import { Product, ProductFormData } from "@/types/products";
+import { MOCK_PRODUCTS, PRODUCT_CATEGORIES } from "@/constants/mockProducts";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 
 // Form validation schema
 const productSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
   category: z.string().min(1, "Category is required"),
   initialQuantity: z.coerce
     .number()
@@ -44,15 +44,16 @@ const productSchema = z.object({
     .number()
     .min(0, "Wholesale price must be 0 or greater"),
   retailPrice: z.coerce.number().min(0, "Retail price must be 0 or greater"),
-  note: z.string().optional(),
+  note: z.string().trim().optional(),
 });
 
 interface AddProductFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ProductFormData & { image: string }) => void;
-  initialData?: Partial<ProductFormData & { image: string }>;
+  onSubmit: (data: ProductFormData & { image: string | null }) => void;
+  initialData?: Partial<ProductFormData & { image: string; id: string }>;
   similarNameWarning?: string | null;
+  setSimilarNameWarning: (warning: string | null) => void;
 }
 
 const AddProductForm: React.FC<AddProductFormProps> = ({
@@ -61,7 +62,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   onSubmit,
   initialData,
   similarNameWarning,
+  setSimilarNameWarning
 }) => {
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [image, setImage] = useState<string | null>(initialData?.image || null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -75,6 +78,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
     reset,
     setValue,
     watch,
+    setError, // Make sure this is included
+    clearErrors, // Make sure this is included
   } = useForm<Omit<ProductFormData, "image">>({
     resolver: zodResolver(productSchema),
     defaultValues: initialData
@@ -82,12 +87,12 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
       : {
           name: "",
           category: "",
-          initialQuantity: 0,
+          initialQuantity: undefined,
           reorderLevel: 5,
           initialLocationId: "",
-          costPrice: 0,
-          wholesalePrice: 0,
-          retailPrice: 0,
+          costPrice: undefined,
+          wholesalePrice: undefined,
+          retailPrice: undefined,
           note: "",
         },
   });
@@ -95,12 +100,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   // Watch for the cost and wholesale price to calculate retail
   const costPrice = watch("costPrice");
   const wholesalePrice = watch("wholesalePrice");
-
-  // Calculate suggested retail price in USD from wholesale price (30% markup)
-  const suggestedRetailUSD = wholesalePrice * 1.3;
-
-  // Convert USD to ZMW (assuming 1 USD = 17.5 ZMW)
-  const suggestedRetailZMW = suggestedRetailUSD * 17.5;
 
   // Reset form when closed or in edit mode
   React.useEffect(() => {
@@ -178,14 +177,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   };
 
   const onFormSubmit = handleSubmit((data) => {
-    if (!image) {
-      setImageError("Please upload an image");
-      return;
-    }
-
     onSubmit({
       ...data,
-      image: image,
+      image: image || "",
     });
     onOpenChange(false);
   });
@@ -217,6 +211,47 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
       }
       return a.name.localeCompare(b.name);
     });
+  };
+
+  const handleProductNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim();
+    setValue("name", value);
+
+    if (value.length > 2) {
+      // Find similar products
+      const matching = MOCK_PRODUCTS.filter(
+        (p) =>
+          p.name.toLowerCase().includes(value.toLowerCase()) ||
+          value.toLowerCase().includes(p.name.toLowerCase())
+      );
+
+      setSimilarProducts(matching.slice(0, 5)); // Limit to 5 results
+
+      // Set warning for similar products
+      if (matching.length > 0) {
+        setSimilarNameWarning(`Found ${matching.length} similar product names`);
+      } else {
+        setSimilarNameWarning(null);
+      }
+
+      // Check for exact duplicate
+      const exactMatch = MOCK_PRODUCTS.find(
+        (p) =>
+          p.name.toLowerCase() === value.toLowerCase() &&
+          (!initialData || p.id !== initialData.id) // Exclude current product in edit mode
+      );
+
+      if (exactMatch) {
+        setError("name", {
+          type: "duplicate",
+          message: "A product with this exact name already exists",
+        });
+      }
+    } else {
+      setSimilarProducts([]);
+      setSimilarNameWarning(null);
+      clearErrors("name");
+    }
   };
 
   return (
@@ -322,6 +357,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   id="name"
                   placeholder="Item Name"
                   {...register("name")}
+                  onChange={handleProductNameChange}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
                     errors.name &&
@@ -340,6 +376,21 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                     <p className="text-xs text-yellow-700">
                       {similarNameWarning}
                     </p>
+                  </div>
+                )}
+
+                {similarProducts.length > 0 && (
+                  <div className="mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-xs font-medium text-yellow-700 mb-1">
+                      Similar products:
+                    </p>
+                    <ul className="text-xs text-yellow-700">
+                      {similarProducts.map((p) => (
+                        <li key={p.id} className="truncate">
+                          {p.name}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
@@ -548,13 +599,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                 {errors.retailPrice && (
                   <p className="text-sm text-red-500 mt-0">
                     {errors.retailPrice.message}
-                  </p>
-                )}
-
-                {wholesalePrice > 0 && (
-                  <p className="text-xs text-gray-500">
-                    Suggested: K {suggestedRetailZMW.toFixed(2)} ($
-                    {suggestedRetailUSD.toFixed(2)})
                   </p>
                 )}
               </div>

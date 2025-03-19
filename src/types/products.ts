@@ -55,9 +55,11 @@ export interface DateRange {
 export interface ProductFiltersT {
     search?: string;
     category?: string;
+    categories?: string[];
     stockStatus?: StockStatus;
     dateRange?: DateRange;
     locationId?: string;
+    locationIds?: string[];
     isCustomer?: boolean;
 }
 
