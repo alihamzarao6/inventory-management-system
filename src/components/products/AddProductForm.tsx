@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useRef } from "react";
 import { X, Upload, AlertCircle } from "lucide-react";
 import { z } from "zod";
@@ -178,14 +178,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   };
 
   const onFormSubmit = handleSubmit((data) => {
-    if (!image) {
-      setImageError("Please upload an image");
-      return;
-    }
-
     onSubmit({
       ...data,
-      image: image,
+      image: image || "",
     });
     onOpenChange(false);
   });
