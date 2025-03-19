@@ -457,7 +457,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
               onClick={() => onPageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
             >
-              <ChevronUp className="h-4 w-4 rotate-90" />
+              <ChevronDown className="h-4 w-4 rotate-90" />
             </Button>
 
             {(() => {
@@ -563,7 +563,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                 pagination.page * pagination.perPage >= pagination.total
               }
             >
-              <ChevronDown className="h-4 w-4 rotate-90" />
+              <ChevronUp className="h-4 w-4 rotate-90" />
             </Button>
 
             <Button
