@@ -53,7 +53,7 @@ interface AddProductFormProps {
   onSubmit: (data: ProductFormData & { image: string | null }) => void;
   initialData?: Partial<ProductFormData & { image: string; id: string }>;
   similarNameWarning?: string | null;
-  setSimilarNameWarning: (warning: string | null) => void;
+  setSimilarNameWarning?: (warning: string | null) => void;
 }
 
 const AddProductForm: React.FC<AddProductFormProps> = ({
@@ -229,9 +229,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
 
       // Set warning for similar products
       if (matching.length > 0) {
-        setSimilarNameWarning(`Found ${matching.length} similar product names`);
+        setSimilarNameWarning && setSimilarNameWarning(`Found ${matching.length} similar product names`);
       } else {
-        setSimilarNameWarning(null);
+        setSimilarNameWarning && setSimilarNameWarning(null);
       }
 
       // Check for exact duplicate
@@ -249,7 +249,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
       }
     } else {
       setSimilarProducts([]);
-      setSimilarNameWarning(null);
+      setSimilarNameWarning && setSimilarNameWarning(null);
       clearErrors("name");
     }
   };
