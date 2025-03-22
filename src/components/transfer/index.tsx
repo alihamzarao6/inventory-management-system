@@ -6,6 +6,9 @@ import {
   Trash2,
   Plus,
   Edit,
+  Edit2,
+  Check,
+  X,
   Search,
   ArrowRight,
 } from "lucide-react";
@@ -43,6 +46,10 @@ const TransferModule: React.FC = () => {
     items: [],
     note: "",
   });
+
+  // States for inline quantity editing
+  const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
+  const [editingQuantity, setEditingQuantity] = useState<number>(0);
 
   // Handle source location change
   const handleSourceLocationSelect = (locationIds: string[]) => {
@@ -191,6 +198,61 @@ const TransferModule: React.FC = () => {
         item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.sourceLocationName.toLowerCase().includes(searchTerm.toLowerCase())
     );
+  };
+
+  // Handle edit item quantity
+  const handleEditItemQuantity = (
+    productId: string,
+    sourceLocationId: string,
+    quantity: number
+  ) => {
+    setEditingItemKey(`${productId}-${sourceLocationId}`);
+    setEditingQuantity(quantity);
+  };
+
+  // Handle save item quantity
+  const handleSaveItemQuantity = (
+    productId: string,
+    sourceLocationId: string
+  ) => {
+    if (editingQuantity <= 0) {
+      showToast("Quantity must be greater than zero", "error");
+      return;
+    }
+
+    // Find the item in the transfer items
+    const updatedItems = transferData.items.map((item) => {
+      if (
+        item.productId === productId &&
+        item.sourceLocationId === sourceLocationId
+      ) {
+        // Make sure quantity doesn't exceed available quantity
+        const validQuantity = Math.min(editingQuantity, item.sourceQuantity);
+
+        return {
+          ...item,
+          quantity: validQuantity,
+        };
+      }
+      return item;
+    });
+
+    setTransferData((prev) => ({
+      ...prev,
+      items: updatedItems,
+    }));
+
+    // Clear editing state
+    setEditingItemKey(null);
+    setEditingQuantity(0);
+
+    showToast("Item quantity updated", "success");
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingItemKey(null);
+    setEditingQuantity(0);
   };
 
   // Complete transfer
@@ -402,8 +464,8 @@ const TransferModule: React.FC = () => {
                         </span>
                       </div>
                     </th>
-                    <th className="px-6 py-4">Transfer Amount</th>
-                    <th className="px-6 py-4">
+                    <th className="px-6 py-4 text-center">Transfer Amount</th>
+                    <th className="px-6 py-4 text-center">
                       <div className="flex flex-col">
                         <span>Quantity</span>
                         <span className="text-xs font-normal uppercase">
@@ -411,6 +473,7 @@ const TransferModule: React.FC = () => {
                         </span>
                       </div>
                     </th>
+                    <th className="px-6 py-4 text-center">Edit Quantity</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -419,6 +482,10 @@ const TransferModule: React.FC = () => {
                       const isItemSelected = selectedItems.includes(
                         `${item.productId}-${item.sourceLocationId}`
                       );
+                      const isEditing =
+                        editingItemKey ===
+                        `${item.productId}-${item.sourceLocationId}`;
+
                       return (
                         <tr
                           key={`${item.productId}-${item.sourceLocationId}`}
@@ -482,14 +549,31 @@ const TransferModule: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="font-medium text-gray-900">
-                              {item.quantity}
-                            </div>
+                          <td className="px-6 py-4 text-center">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                min="1"
+                                max={item.sourceQuantity}
+                                value={editingQuantity}
+                                onChange={(e) =>
+                                  setEditingQuantity(
+                                    parseInt(e.target.value) || 0
+                                  )
+                                }
+                                className="w-24 text-center mx-auto"
+                                autoFocus
+                              />
+                            ) : (
+                              <div className="font-medium text-gray-900">
+                                {item.quantity}
+                              </div>
+                            )}
                           </td>
-                          <td className="px-6 py-4">
+                         
+                          <td className="px-6 py-4 text-center">
                             <div>
-                              <div className="flex items-center">
+                              <div className="flex items-center justify-center">
                                 <span className="text-gray-900">
                                   {item.destinationQuantity}
                                 </span>
@@ -506,13 +590,55 @@ const TransferModule: React.FC = () => {
                               </div>
                             </div>
                           </td>
+                           <td className="px-6 py-4 text-center">
+                            {isEditing ? (
+                              <div className="flex gap-1 justify-center">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() =>
+                                    handleSaveItemQuantity(
+                                      item.productId,
+                                      item.sourceLocationId
+                                    )
+                                  }
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={handleCancelEdit}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                                onClick={() =>
+                                  handleEditItemQuantity(
+                                    item.productId,
+                                    item.sourceLocationId,
+                                    item.quantity
+                                  )
+                                }
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7} // Updated column span to include the new column
                         className="px-6 py-8 text-center text-gray-500"
                       >
                         {currentStep === 2
@@ -596,3 +722,14 @@ const TransferModule: React.FC = () => {
 };
 
 export default TransferModule;
+
+// The TransferModule component is the main component that handles the transfer process. It has four steps:
+
+// Select Locations
+// Select Items
+// Set Quantities
+// Complete Transfer
+
+// The component uses the  LocationFilters  component from the Products module to select source and destination locations. It also uses the  AddItemsModal  and  EditQuantitiesModal  components to add items and edit quantities respectively.
+// The component uses a lot of local state to manage the transfer data and UI interactions. It also uses the  useToast  hook to show toast messages.
+// The  TransferCompletedView  component is shown when the transfer is completed. It shows the transfer details and allows the user to go back to the transfers page.
