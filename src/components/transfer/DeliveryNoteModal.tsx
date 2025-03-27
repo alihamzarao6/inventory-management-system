@@ -1,37 +1,37 @@
 "use client";
 import React, { useRef } from "react";
-import { Share, Printer, User, Phone, Mail, MapPin } from "lucide-react";
+import { Share, Printer } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransferFormData } from "@/types/transfers";
-import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
+import { createHandleExport } from "@/utils/pdfExport";
 
-interface CustomerDeliveryModalProps {
+interface DeliveryNoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  transfer: TransferFormData & { isCustomerDestination?: boolean };
+  transfer: TransferFormData;
   sourceLocationName: string;
   destinationLocationName: string;
 }
 
-const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
+const DeliveryNoteModal: React.FC<DeliveryNoteModalProps> = ({
   open,
   onOpenChange,
   transfer,
   sourceLocationName,
   destinationLocationName,
 }) => {
-  const printRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLElement | null>(null);
 
-  // Generate delivery note ID
+  // Generate delivery note ID - retained from original component
   const generateDeliveryNoteId = () => {
     const now = new Date();
     const year = now.getFullYear().toString().slice(-2);
     const month = String(now.getMonth() + 1).padStart(2, "0");
-    return `Z-CD-${year}/${month}${Math.floor(Math.random() * 9000 + 1000)}`;
+    return `Z-D-${year}/${month}${Math.floor(Math.random() * 9000 + 1000)}`;
   };
 
-  // Format date
+  // Format date - retained from original component
   const formatDate = () => {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
@@ -40,18 +40,15 @@ const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
     return `${day}.${month}.${year}`;
   };
 
-  // Get customer details
-  const getCustomerDetails = () => {
-    if (!transfer.destinationLocationId) return null;
+  // Create export handler using our utility function
+  const handleExport = createHandleExport(
+    // @ts-ignore
+    printRef,
+    "delivery-note",
+    destinationLocationName.replace(/\s+/g, "-").toLowerCase()
+  );
 
-    return MOCK_CUSTOMERS.find(
-      (customer) => customer.id === transfer.destinationLocationId
-    );
-  };
-
-  const customer = getCustomerDetails();
-
-  // Print document
+  // Print document - retained from original component
   const handlePrint = () => {
     const printContent = printRef.current;
     if (!printContent) return;
@@ -62,7 +59,7 @@ const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
     printWindow.document.write(`
       <html>
         <head>
-          <title>Customer Delivery Note</title>
+          <title>Delivery Note</title>
           <style>
             body { font-family: Arial, sans-serif; }
             table { width: 100%; border-collapse: collapse; }
@@ -82,20 +79,10 @@ const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
     printWindow.close();
   };
 
-  // Export document
-  const handleExport = () => {
-    // In a real app, this would generate a PDF
-    console.log("Export customer delivery note");
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[850px] bg-gray-100 p-0 overflow-hidden flex flex-col h-[90vh]">
         <div className="flex justify-between items-center p-4 bg-white border-b">
-          <div className="font-semibold flex items-center">
-            <User className="mr-2 h-5 w-5 text-blue-500" />
-            Customer Delivery Note
-          </div>
 
           <div className="flex gap-2">
             <Button
@@ -119,69 +106,38 @@ const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
 
         <div className="overflow-y-auto flex-1 p-6">
           <div
+            // @ts-ignore
             ref={printRef}
             className="bg-white p-8 shadow-md max-w-4xl mx-auto"
           >
             <div className="flex justify-between items-center mb-8">
               <div className="text-sm text-gray-500">Page: 1/1</div>
               <div className="text-sm text-gray-500">
-                Customer Delivery #: {generateDeliveryNoteId()}
+                Delivery #: {generateDeliveryNoteId()}
               </div>
               <div className="text-sm text-gray-500">Date: {formatDate()}</div>
             </div>
 
-            <h1 className="text-2xl font-bold text-center mb-6">
-              Customer Delivery Note
+            <h1 className="text-2xl font-bold text-center mb-8">
+              Delivery Note
             </h1>
-
-            {customer && (
-              <div className="mb-8 border p-4 rounded-md bg-blue-50">
-                <h3 className="font-medium text-blue-700 mb-2 flex items-center">
-                  <User className="mr-2 h-4 w-4" />
-                  Customer Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Customer Name:</p>
-                    <p className="font-medium">{customer.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Contact Info:</p>
-                    <p className="flex items-center mt-1">
-                      <Phone className="h-3 w-3 mr-1 text-gray-500" />
-                      {customer.phone}
-                    </p>
-                    <p className="flex items-center mt-1">
-                      <Mail className="h-3 w-3 mr-1 text-gray-500" />
-                      {customer.email}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-500">Delivery Address:</p>
-                    <p className="flex items-start mt-1">
-                      <MapPin className="h-3 w-3 mr-1 mt-1 text-gray-500" />
-                      <span>
-                        {customer.address}, {customer.city}, {customer.country}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="mb-8">
               <div className="flex justify-between mb-4">
                 <div>
                   <div className="text-gray-500 mb-1">
-                    Delivered From Location:
+                    Select Deliver From Location ↓
                   </div>
                   <div className="font-medium">{sourceLocationName}</div>
                 </div>
+                <div>
+                  <div className="text-gray-500 mb-1">Deliver To:</div>
+                  <div className="font-medium">{destinationLocationName}</div>
+                </div>
               </div>
 
-              <div className="border-t border-b py-2 grid grid-cols-8">
-                <div className="col-span-4 font-medium">Item Name</div>
-                <div className="col-span-2 font-medium">Category</div>
+              <div className="border-t border-b py-2 grid grid-cols-7">
+                <div className="col-span-5 font-medium">Item Name</div>
                 <div className="col-span-2 text-right font-medium">
                   Quantity
                 </div>
@@ -190,23 +146,13 @@ const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
               {transfer.items.map((item, index) => (
                 <div
                   key={`${item.productId}-${item.sourceLocationId}`}
-                  className="border-b py-2 grid grid-cols-8"
+                  className="border-b py-2 grid grid-cols-7"
                 >
-                  <div className="col-span-4">{item.productName}</div>
-                  <div className="col-span-2 text-gray-600">
-                    {item.category}
-                  </div>
+                  <div className="col-span-5">{item.productName}</div>
                   <div className="col-span-2 text-right">{item.quantity}</div>
                 </div>
               ))}
             </div>
-
-            {transfer.note && (
-              <div className="mb-8 border p-4 rounded-md bg-gray-50">
-                <h3 className="font-medium mb-2">Delivery Notes:</h3>
-                <p className="text-gray-700">{transfer.note}</p>
-              </div>
-            )}
 
             <div className="mt-16 grid grid-cols-2 gap-8">
               <div>
@@ -229,4 +175,4 @@ const CustomerDeliveryModal: React.FC<CustomerDeliveryModalProps> = ({
   );
 };
 
-export default CustomerDeliveryModal;
+export default DeliveryNoteModal;
