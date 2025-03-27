@@ -11,6 +11,9 @@ import {
   X,
   Search,
   ArrowRight,
+  User,
+  Store,
+  Warehouse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +23,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Steps, Step } from "@/components/ui/steps";
-import LocationFilters from "@/components/products/LocationFilters"; // Reusing from Products module
+import LocationFilters from "@/components/products/LocationFilters";
 import AddItemsModal from "./AddItemsModal";
 import EditQuantitiesModal from "./EditQuantitiesModal";
 import TransferCompletedView from "./TransferCompletedView";
 import { TransferFormData, TransferItem } from "@/types/transfers";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
+import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
 import { cn } from "@/utils";
 import useToast from "@/hooks/useToast";
 
@@ -40,6 +44,7 @@ const TransferModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isCustomerDestination, setIsCustomerDestination] = useState(false);
   const [transferData, setTransferData] = useState<TransferFormData>({
     sourceLocationIds: [],
     destinationLocationId: "",
@@ -72,7 +77,10 @@ const TransferModule: React.FC = () => {
   };
 
   // Handle destination location change
-  const handleDestinationLocationSelect = (locationIds: string[]) => {
+  const handleDestinationLocationSelect = (
+    locationIds: string[],
+    isCustomer = false
+  ) => {
     // We only care about the first location ID since we only allow one destination
     const locationId = locationIds[0];
 
@@ -82,14 +90,24 @@ const TransferModule: React.FC = () => {
       return;
     }
 
+    setIsCustomerDestination(isCustomer);
     setTransferData((prev) => ({
       ...prev,
       destinationLocationId: locationId,
     }));
 
-    // Update destination quantities for existing items
+    // Update destination quantities for existing items - customers start with 0
     if (transferData.items.length > 0) {
       const updatedItems = transferData.items.map((item) => {
+        // Customers always have 0 initial quantity
+        if (isCustomer) {
+          return {
+            ...item,
+            destinationQuantity: 0,
+          };
+        }
+
+        // For warehouses/stores, look up current quantity
         const product = MOCK_PRODUCTS.find((p) => p.id === item.productId);
         const destinationQuantity =
           product?.locations.find((loc) => loc.locationId === locationId)
@@ -110,9 +128,15 @@ const TransferModule: React.FC = () => {
 
   // Get location name by ID
   const getLocationName = (locationId: string): string => {
+    // Check if it's a customer
+    const customer = MOCK_CUSTOMERS.find((cust) => cust.id === locationId);
+    if (customer) return `${customer.name} (Customer)`;
+
+    // Check if it's a main location
     const mainLocation = MOCK_LOCATIONS.find((loc) => loc.id === locationId);
     if (mainLocation) return mainLocation.name;
 
+    // Check if it's a sublocation
     const subLocation = MOCK_SUB_LOCATIONS.find(
       (subloc) => subloc.id === locationId
     );
@@ -124,6 +148,37 @@ const TransferModule: React.FC = () => {
     }
 
     return "Unknown Location";
+  };
+
+  // Get location icon based on type
+  const getLocationIcon = (locationId: string) => {
+    // Check if it's a customer
+    const customer = MOCK_CUSTOMERS.find((cust) => cust.id === locationId);
+    if (customer) return <User className="h-4 w-4 mr-1 text-blue-500" />;
+
+    // Check if it's a main location
+    const mainLocation = MOCK_LOCATIONS.find((loc) => loc.id === locationId);
+    if (mainLocation) {
+      if (mainLocation.type === "Warehouse") {
+        return <Warehouse className="h-4 w-4 mr-1 text-amber-500" />;
+      } else {
+        return <Store className="h-4 w-4 mr-1 text-green-500" />;
+      }
+    }
+
+    // Check if it's a sublocation
+    const subLocation = MOCK_SUB_LOCATIONS.find(
+      (subloc) => subloc.id === locationId
+    );
+    if (subLocation) {
+      if (subLocation.type === "Warehouse") {
+        return <Warehouse className="h-4 w-4 mr-1 text-amber-500" />;
+      } else {
+        return <Store className="h-4 w-4 mr-1 text-green-500" />;
+      }
+    }
+
+    return null;
   };
 
   // Add items from modal
@@ -261,6 +316,7 @@ const TransferModule: React.FC = () => {
     const newTransfer = {
       id: `TR-${Date.now()}`,
       ...transferData,
+      isCustomerDestination,
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       status: "completed" as const,
@@ -302,7 +358,7 @@ const TransferModule: React.FC = () => {
   if (isTransferCompleted) {
     return (
       <TransferCompletedView
-        transfer={transferData}
+        transfer={{ ...transferData, isCustomerDestination }}
         onBackToTransfers={() => router.push("/transfer")}
       />
     );
@@ -352,7 +408,12 @@ const TransferModule: React.FC = () => {
                 {transferData.sourceLocationIds.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {transferData.sourceLocationIds.map((id) => (
-                      <Badge key={id} variant="secondary" className="px-3 py-1">
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="px-3 py-1 flex items-center"
+                      >
+                        {getLocationIcon(id)}
                         {getLocationName(id)}
                       </Badge>
                     ))}
@@ -382,14 +443,18 @@ const TransferModule: React.FC = () => {
                       : []
                   }
                   onLocationSelect={handleDestinationLocationSelect}
-                  showCustomers={false}
+                  showCustomers={true} // Allow customers as destinations
                   allowMultipleSelection={false} // Only allow single selection for destination
                 />
 
                 {/* Show selected destination as badge */}
                 {transferData.destinationLocationId && (
                   <div className="mt-4">
-                    <Badge variant="secondary" className="px-3 py-1">
+                    <Badge
+                      variant="secondary"
+                      className="px-3 py-1 flex items-center"
+                    >
+                      {getLocationIcon(transferData.destinationLocationId)}
                       {getLocationName(transferData.destinationLocationId)}
                     </Badge>
                   </div>
@@ -438,6 +503,20 @@ const TransferModule: React.FC = () => {
             </div>
           </div>
 
+          {/* Destination type indicator for customer transfers */}
+          {isCustomerDestination && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center">
+                <User className="h-5 w-5 text-blue-500 mr-2" />
+                <p className="text-blue-700">
+                  <span className="font-medium">Customer Transfer:</span> Items
+                  will be transferred to{" "}
+                  {getLocationName(transferData.destinationLocationId)}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Items table */}
           <Card className="mb-6 overflow-hidden">
             <div className="overflow-x-auto">
@@ -469,7 +548,7 @@ const TransferModule: React.FC = () => {
                       <div className="flex flex-col">
                         <span>Quantity</span>
                         <span className="text-xs font-normal uppercase">
-                          To Location
+                          To {isCustomerDestination ? "Customer" : "Location"}
                         </span>
                       </div>
                     </th>
@@ -570,7 +649,7 @@ const TransferModule: React.FC = () => {
                               </div>
                             )}
                           </td>
-                         
+
                           <td className="px-6 py-4 text-center">
                             <div>
                               <div className="flex items-center justify-center">
@@ -590,7 +669,7 @@ const TransferModule: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                           <td className="px-6 py-4 text-center">
+                          <td className="px-6 py-4 text-center">
                             {isEditing ? (
                               <div className="flex gap-1 justify-center">
                                 <Button
@@ -688,7 +767,7 @@ const TransferModule: React.FC = () => {
             }
             onClick={handleNextStep}
             disabled={!isStepValid()}
-            variant="outline"
+            variant={currentStep < 3 ? "outline" : "default"}
           >
             {currentStep === 1
               ? "Select Items"
@@ -716,6 +795,7 @@ const TransferModule: React.FC = () => {
         items={transferData.items}
         onUpdateQuantities={handleUpdateQuantities}
         destinationLocationId={transferData.destinationLocationId}
+        isCustomerDestination={isCustomerDestination}
       />
     </div>
   );

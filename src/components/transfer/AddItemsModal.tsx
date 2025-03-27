@@ -18,6 +18,7 @@ import { TransferItem } from "@/types/transfers";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import { cn } from "@/utils";
+import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
 
 interface AddItemsModalProps {
   open: boolean;
@@ -51,6 +52,11 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
       quantity: number;
     }[]
   >([]);
+
+  // Determine if destination is a customer
+  const isCustomerDestination = MOCK_CUSTOMERS.some(
+    (customer) => customer.id === destinationLocationId
+  );
 
   // Load available products when modal opens
   useEffect(() => {
@@ -178,10 +184,12 @@ const AddItemsModal: React.FC<AddItemsModalProps> = ({
       if (!productData) return null as any;
 
       // Get destination quantity (if product exists at destination)
-      const destinationQuantity =
-        productData.product.locations.find(
-          (loc: any) => loc.locationId === destinationLocationId
-        )?.quantity || 0;
+      // For customers, this will be 0 since they don't have initial inventory
+      const destinationQuantity = isCustomerDestination
+        ? 0
+        : productData.product.locations.find(
+            (loc: any) => loc.locationId === destinationLocationId
+          )?.quantity || 0;
 
       return {
         productId: selected.productId,

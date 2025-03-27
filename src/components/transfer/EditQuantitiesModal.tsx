@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, Search, Check, Trash2 } from "lucide-react";
+import { ChevronLeft, Search, Check, Trash2, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ interface EditQuantitiesModalProps {
   items: TransferItem[];
   onUpdateQuantities: (items: TransferItem[]) => void;
   destinationLocationId: string;
+  isCustomerDestination?: boolean;
 }
 
 const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
@@ -31,6 +32,7 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
   items,
   onUpdateQuantities,
   destinationLocationId,
+  isCustomerDestination = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editedItems, setEditedItems] = useState<TransferItem[]>([]);
@@ -134,6 +136,19 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
           </div>
         </DialogHeader>
 
+        {/* Customer indicator */}
+        {isCustomerDestination && (
+          <div className="bg-blue-50 p-4 border-b border-blue-100">
+            <div className="flex items-center">
+              <User className="h-5 w-5 text-blue-500 mr-2" />
+              <p className="text-blue-800">
+                <span className="font-medium">Customer Transfer:</span> Items
+                will be sent to a customer
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="p-6 flex-1 overflow-hidden flex flex-col">
           <div className="flex flex-col md:flex-row justify-between gap-4 mb-6 shrink-0">
             <div className="relative flex-1 max-w-md">
@@ -230,11 +245,13 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                         <span>Transfer Quantity</span>
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-center">
-                      <div>
-                        <span>Destination Qty</span>
-                      </div>
-                    </th>
+                    {!isCustomerDestination && (
+                      <th className="px-6 py-4 text-center">
+                        <div>
+                          <span>Destination Qty</span>
+                        </div>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -324,29 +341,31 @@ const EditQuantitiesModal: React.FC<EditQuantitiesModalProps> = ({
                               {item.sourceQuantity - item.quantity} will remain
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <div className="flex flex-col items-center">
-                              <div className="flex items-center">
-                                <span className="text-gray-900">
-                                  {item.destinationQuantity}
-                                </span>
-                                <span className="text-gray-500 mx-2">→</span>
-                                <span className="text-gray-900 font-medium">
-                                  {item.destinationQuantity + item.quantity}
+                          {!isCustomerDestination && (
+                            <td className="px-6 py-4 text-center">
+                              <div className="flex flex-col items-center">
+                                <div className="flex items-center">
+                                  <span className="text-gray-900">
+                                    {item.destinationQuantity}
+                                  </span>
+                                  <span className="text-gray-500 mx-2">→</span>
+                                  <span className="text-gray-900 font-medium">
+                                    {item.destinationQuantity + item.quantity}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  After transfer
                                 </span>
                               </div>
-                              <span className="text-xs text-gray-500">
-                                After transfer
-                              </span>
-                            </div>
-                          </td>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={isCustomerDestination ? 6 : 7}
                         className="px-6 py-10 text-center text-gray-500"
                       >
                         {searchTerm

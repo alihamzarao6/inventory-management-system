@@ -471,6 +471,7 @@ const IncomingItemsPage = () => {
           <Button
             onClick={handleAddProducts}
             disabled={!selectedLocationId || availableProducts.length === 0}
+            variant="outline"
           >
             <Plus className="mr-2 h-4 w-4" /> Add/Remove Products
           </Button>

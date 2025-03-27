@@ -37,6 +37,7 @@ export interface TransferFormData {
     destinationLocationId: string;
     items: TransferItem[];
     note?: string;
+    isCustomerDestination?: boolean;
 }
 
 export interface TransferHistory {
