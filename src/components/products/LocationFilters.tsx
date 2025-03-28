@@ -23,6 +23,7 @@ interface LocationFiltersProps {
   onLocationSelect: (locationIds: string[], isCustomer?: boolean) => void;
   showCustomers?: boolean;
   allowMultipleSelection?: boolean; // New prop to control multiple selection
+  placeholder?: string;
 }
 
 const LocationFilters: React.FC<LocationFiltersProps> = ({
@@ -30,6 +31,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
   onLocationSelect,
   showCustomers = true,
   allowMultipleSelection = true, // Default to true (multiple selection)
+  placeholder = "Search...",
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMainLocation, setSelectedMainLocation] = useState<
@@ -259,7 +261,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
         <div className="relative">
           <Input
             type="search"
-            placeholder="Search..."
+            placeholder={placeholder}
             value={searchQuery}
             onChange={handleSearchChange}
             className="pl-8 py-2 h-9 text-sm"

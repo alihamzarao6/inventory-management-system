@@ -1,10 +1,11 @@
-"use client"
+"use client";
 import React, { useRef } from "react";
-import { X, Share, Printer } from "lucide-react";
+import { Share, Printer } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransferFormData } from "@/types/transfers";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
+import { createHandleExport } from "@/utils/pdfExport";
 
 interface RetailInvoiceModalProps {
   open: boolean;
@@ -40,13 +41,15 @@ const RetailInvoiceModal: React.FC<RetailInvoiceModalProps> = ({
     return `${day}.${month}.${year}`;
   };
 
-  // Get product prices and calculate totals (using local currency - ZMW)
+  // Get product prices and calculate totals
   const getInvoiceData = () => {
     let totalAmount = 0;
+    let vatAmount = 0;
+    const vatRate = 0.16; // 16% VAT
 
     const items = transfer.items.map((item) => {
       const product = MOCK_PRODUCTS.find((p) => p.id === item.productId);
-      const price = product?.retailPrice || 0; // Use retail price in ZMW
+      const price = product?.retailPrice || 0; // Use retail price for ZMW
       const discount = 0; // Could be dynamic
       const amount = price * item.quantity;
 
@@ -60,13 +63,28 @@ const RetailInvoiceModal: React.FC<RetailInvoiceModalProps> = ({
       };
     });
 
+    // Calculate VAT - in retail invoices we often include VAT
+    vatAmount = totalAmount * vatRate;
+    const grandTotal = totalAmount + vatAmount;
+
     return {
       items,
-      totalAmount,
+      subtotal: totalAmount,
+      vatRate,
+      vatAmount,
+      grandTotal,
     };
   };
 
   const invoiceData = getInvoiceData();
+
+  // Create export handler using our utility function
+  const handleExport = createHandleExport(
+    // @ts-ignore
+    printRef,
+    "retail-invoice",
+    destinationLocationName.replace(/\s+/g, "-").toLowerCase()
+  );
 
   // Print document
   const handlePrint = () => {
@@ -99,17 +117,10 @@ const RetailInvoiceModal: React.FC<RetailInvoiceModalProps> = ({
     printWindow.close();
   };
 
-  // Export document
-  const handleExport = () => {
-    // In a real app, this would generate a PDF
-    console.log("Export retail invoice");
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[850px] bg-gray-100 p-0 overflow-hidden flex flex-col h-[90vh]">
         <div className="flex justify-between items-center p-4 bg-white border-b">
-
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -137,9 +148,15 @@ const RetailInvoiceModal: React.FC<RetailInvoiceModalProps> = ({
           >
             <div className="flex justify-between items-center mb-8">
               <div className="text-sm text-gray-500">Page: 1/1</div>
-              <div className="text-sm text-gray-500">{generateInvoiceId()}</div>
+              <div className="text-sm text-gray-500">
+                #: {generateInvoiceId()}
+              </div>
               <div className="text-sm text-gray-500">Date: {formatDate()}</div>
             </div>
+
+            <h1 className="text-2xl font-bold text-center mb-8">
+              Retail Invoice
+            </h1>
 
             <div className="mb-6 flex justify-center">
               <div>
@@ -157,9 +174,9 @@ const RetailInvoiceModal: React.FC<RetailInvoiceModalProps> = ({
                 <tr className="border-b border-t">
                   <th className="py-2 text-left">Item Name</th>
                   <th className="py-2 text-right">Quantity</th>
-                  <th className="py-2 text-right">Price</th>
+                  <th className="py-2 text-right">Price (ZMW)</th>
                   <th className="py-2 text-right">Discount</th>
-                  <th className="py-2 text-right">Amount</th>
+                  <th className="py-2 text-right">Amount (ZMW)</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,10 +202,18 @@ const RetailInvoiceModal: React.FC<RetailInvoiceModalProps> = ({
             </table>
 
             <div className="flex justify-end mb-8">
-              <div className="w-1/3 bg-gray-100 p-4">
-                <div className="flex justify-between font-medium">
+              <div className="w-1/3 bg-gray-100 p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>K {invoiceData.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>VAT ({(invoiceData.vatRate * 100).toFixed(0)}%)</span>
+                  <span>K {invoiceData.vatAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold border-t pt-2">
                   <span>Total Amount</span>
-                  <span>K {invoiceData.totalAmount.toFixed(2)}</span>
+                  <span>K {invoiceData.grandTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

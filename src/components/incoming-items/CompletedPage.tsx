@@ -1,14 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronUp, ArrowLeft, Printer } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+  Printer,
+  Share,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/utils";
 import { StockAdjustmentItem } from "@/types/stockAdjustment";
-import ExportOptions from "@/components/stock-adjustment/ExportOptions";
+import { createHandleExport } from "@/utils/pdfExport";
 
 // Mock suppliers data
 const MOCK_SUPPLIERS = [
@@ -35,6 +49,7 @@ interface IncomingItemsRecord {
 export const CompletedPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Get record ID from query params
   const recordId = searchParams.get("id");
@@ -45,6 +60,17 @@ export const CompletedPage = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("items");
+
+  // Set up export function
+  const handleExport = record
+    ? createHandleExport(
+        //@ts-ignore
+        printRef,
+        "incoming-report",
+        `${record.supplierName.replace(/\s+/g, "-").toLowerCase()}`
+      )
+    : () => {};
 
   // Load record data
   useEffect(() => {
@@ -235,11 +261,13 @@ export const CompletedPage = () => {
               record.completedAt || record.createdAt
             ).toLocaleDateString()}
           </p>
-          <p className="text-gray-500 mt-1">
-            Supplier: <span className="font-medium">{record.supplierName}</span>
-          </p>
+          <div className="flex items-center text-gray-500 mt-1">
+            <User className="h-4 w-4 mr-1 text-blue-500" />
+            <span>Supplier: </span>
+            <span className="font-medium ml-1">{record.supplierName}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={handlePrint}
@@ -248,145 +276,314 @@ export const CompletedPage = () => {
             <Printer className="h-4 w-4" />
             Print
           </Button>
-          <ExportOptions
-            adjustment={{
-              id: record.id,
-              locationId: record.locationId,
-              locationName: record.locationName,
-              items: record.items,
-              createdAt: record.createdAt,
-              completedAt: record.completedAt,
-              status: "approved",
-            }}
-            fileName={`incoming-items-${record.id}`}
-          />
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="flex items-center gap-2"
+          >
+            <Share className="h-4 w-4" />
+            Export
+          </Button>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
-        <Input
-          type="search"
-          placeholder="Search items..."
-          className="max-w-md"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <Tabs
+        defaultValue="items"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="mb-6"
+      >
+        <TabsList>
+          <TabsTrigger value="items">Items</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+        </TabsList>
 
-      {/* Items Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <TabsContent value="items">
+          {/* Search Bar */}
+          <div className="mb-6">
+            <Input
+              type="search"
+              placeholder="Search items..."
+              className="max-w-md"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Items Table */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    <th className="px-4 py-4">Photo</th>
+                    <th
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => handleSortClick("productName")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Item Name</span>
+                        {renderSortIndicator("productName")}
+                      </div>
+                    </th>
+                    <th
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => handleSortClick("previousQuantity")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Old Quantity</span>
+                        {renderSortIndicator("previousQuantity")}
+                      </div>
+                    </th>
+                    <th
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => handleSortClick("adjustment")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Adjustment</span>
+                        {renderSortIndicator("adjustment")}
+                      </div>
+                    </th>
+                    <th
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => handleSortClick("newQuantity")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>New Quantity</span>
+                        {renderSortIndicator("newQuantity")}
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedAndFilteredItems.length > 0 ? (
+                    sortedAndFilteredItems.map((item, index) => (
+                      <tr
+                        key={item.productId}
+                        className={cn(
+                          "transition-colors border-t border-gray-100",
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30",
+                          "hover:bg-gray-50"
+                        )}
+                      >
+                        <td className="px-4 py-4">
+                          <Avatar className="h-12 w-12 rounded-md">
+                            <AvatarImage
+                              src={item.productImage}
+                              alt={item.productName}
+                              className="object-cover"
+                            />
+                            <AvatarFallback>
+                              {item.productName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-gray-900 font-medium">
+                            {item.productName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {item.category}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-900">
+                          {item.previousQuantity}
+                        </td>
+                        <td className="px-6 py-4 font-medium">
+                          <span className="text-green-500">
+                            +{item.quantity}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-900">
+                          {item.newQuantity}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-10 text-center text-gray-500"
+                      >
+                        {searchTerm
+                          ? "No items found matching your search"
+                          : "No items in this record"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="details">
+          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 className="text-lg font-medium mb-4">Transaction Details</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Location Information
+                </h3>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Location:</span>{" "}
+                  {record.locationName}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Location ID:</span>{" "}
+                  {record.locationId}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Supplier Information
+                </h3>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Supplier:</span>{" "}
+                  {record.supplierName}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Supplier ID:</span>{" "}
+                  {record.supplierId}
+                </p>
+              </div>
+
+              <div className="col-span-1 md:col-span-2">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Transaction Information
+                </h3>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Transaction ID:</span>{" "}
+                  {record.id}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Date Created:</span>{" "}
+                  {new Date(record.createdAt).toLocaleString()}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Date Completed:</span>{" "}
+                  {new Date(record.completedAt).toLocaleString()}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Status:</span>{" "}
+                  {record.status.charAt(0).toUpperCase() +
+                    record.status.slice(1)}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Total Items:</span>{" "}
+                  {record.items.length}
+                </p>
+                <p className="text-gray-900 mb-1">
+                  <span className="font-medium">Total Quantity Added:</span>{" "}
+                  {record.items.reduce(
+                    (total, item) => total + item.quantity,
+                    0
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Note section */}
+            {record.note && (
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Notes
+                </h3>
+                <p className="text-gray-900 whitespace-pre-line">
+                  {record.note}
+                </p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Printable content for PDF export - hidden */}
+      <div className="hidden">
+        <div ref={printRef} className="p-8 bg-white">
+          <h1 className="text-2xl font-bold mb-2">Incoming Items Report</h1>
+          <h2 className="text-lg font-semibold text-gray-700 mb-6">
+            Transaction ID: {record.id}
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p className="font-medium">Date:</p>
+              <p>{new Date(record.completedAt).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="font-medium">Location:</p>
+              <p>{record.locationName}</p>
+            </div>
+            <div>
+              <p className="font-medium">Supplier:</p>
+              <p>{record.supplierName}</p>
+            </div>
+            <div>
+              <p className="font-medium">Status:</p>
+              <p>
+                {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+              </p>
+            </div>
+          </div>
+
+          <table className="w-full mb-8 border-collapse">
             <thead>
-              <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                <th className="px-4 py-4">Photo</th>
-                <th
-                  className="px-6 py-4 cursor-pointer"
-                  onClick={() => handleSortClick("productName")}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>Item Name</span>
-                    {renderSortIndicator("productName")}
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-4 cursor-pointer"
-                  onClick={() => handleSortClick("previousQuantity")}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>Old Quantity</span>
-                    {renderSortIndicator("previousQuantity")}
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-4 cursor-pointer"
-                  onClick={() => handleSortClick("adjustment")}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>Adjustment</span>
-                    {renderSortIndicator("adjustment")}
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-4 cursor-pointer"
-                  onClick={() => handleSortClick("newQuantity")}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>New Quantity</span>
-                    {renderSortIndicator("newQuantity")}
-                  </div>
-                </th>
+              <tr className="border-t border-b border-gray-300">
+                <th className="py-2 px-4 text-left">Item Name</th>
+                <th className="py-2 px-4 text-left">Category</th>
+                <th className="py-2 px-4 text-right">Previous Qty</th>
+                <th className="py-2 px-4 text-right">Added</th>
+                <th className="py-2 px-4 text-right">New Qty</th>
               </tr>
             </thead>
             <tbody>
-              {sortedAndFilteredItems.length > 0 ? (
-                sortedAndFilteredItems.map((item, index) => (
-                  <tr
-                    key={item.productId}
-                    className={cn(
-                      "transition-colors border-t border-gray-100",
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30",
-                      "hover:bg-gray-50"
-                    )}
-                  >
-                    <td className="px-4 py-4">
-                      <Avatar className="h-12 w-12 rounded-md">
-                        <AvatarImage
-                          src={item.productImage}
-                          alt={item.productName}
-                          className="object-cover"
-                        />
-                        <AvatarFallback>
-                          {item.productName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-gray-900 font-medium">
-                        {item.productName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {item.category}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-900">
-                      {item.previousQuantity}
-                    </td>
-                    <td className="px-6 py-4 font-medium">
-                      <span className="text-green-500">+{item.quantity}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-900">
-                      {item.newQuantity}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-10 text-center text-gray-500"
-                  >
-                    {searchTerm
-                      ? "No items found matching your search"
-                      : "No items in this record"}
+              {record.items.map((item) => (
+                <tr key={item.productId} className="border-b border-gray-200">
+                  <td className="py-2 px-4">{item.productName}</td>
+                  <td className="py-2 px-4">{item.category}</td>
+                  <td className="py-2 px-4 text-right">
+                    {item.previousQuantity}
+                  </td>
+                  <td className="py-2 px-4 text-right text-green-600">
+                    +{item.quantity}
+                  </td>
+                  <td className="py-2 px-4 text-right font-medium">
+                    {item.newQuantity}
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-gray-300">
+                <td className="py-2 px-4 font-bold" colSpan={3}>
+                  Total
+                </td>
+                <td className="py-2 px-4 text-right font-bold text-green-600">
+                  +{record.items.reduce((sum, item) => sum + item.quantity, 0)}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
-        </div>
-      </div>
 
-      {/* Note */}
-      {record.note && (
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-2 font-medium">Note:</label>
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
-            {record.note}
+          {record.note && (
+            <div className="mt-4">
+              <h3 className="font-medium mb-2">Notes:</h3>
+              <p className="text-gray-700 whitespace-pre-line">{record.note}</p>
+            </div>
+          )}
+
+          <div className="mt-8 text-center text-gray-500 text-sm">
+            <p>
+              This document was generated from the Inventory Management System
+            </p>
+            <p>{new Date().toLocaleString()}</p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

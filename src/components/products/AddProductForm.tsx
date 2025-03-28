@@ -88,7 +88,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           name: "",
           category: "",
           initialQuantity: undefined,
-          reorderLevel: 5,
+          reorderLevel: 0,
           initialLocationId: "",
           costPrice: undefined,
           wholesalePrice: undefined,
@@ -355,7 +355,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                 </Label>
                 <Input
                   id="name"
-                  placeholder="Item Name"
+                  // placeholder="Item Name"
                   {...register("name")}
                   onChange={handleProductNameChange}
                   className={cn(
@@ -441,7 +441,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   <Input
                     id="initialQuantity"
                     type="number"
-                    placeholder="0"
+                    // placeholder="0"
                     {...register("initialQuantity")}
                     className={cn(
                       "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -462,7 +462,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   <Input
                     id="reorderLevel"
                     type="number"
-                    placeholder="5"
+                    // placeholder="5"
                     {...register("reorderLevel")}
                     className={cn(
                       "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -529,7 +529,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   id="costPrice"
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  // placeholder="0.00"
                   {...register("costPrice")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -553,7 +553,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   id="wholesalePrice"
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  // placeholder="0.00"
                   {...register("wholesalePrice")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",
@@ -588,7 +588,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                   id="retailPrice"
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  // placeholder="0.00"
                   {...register("retailPrice")}
                   className={cn(
                     "border-gray-200 focus:border-gray-300 focus:ring-gray-300",

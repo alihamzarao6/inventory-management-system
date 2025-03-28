@@ -11,18 +11,22 @@ interface IncomingItemsTableProps {
   items: StockAdjustmentItem[];
   checkedItemIds: string[];
   isLoading: boolean;
+  isBatchEditMode?: boolean;
   onToggleItem: (productId: string) => void;
   onEditItem: (productId: string) => void;
   onDeleteItem: (productId: string) => void;
+  onQuantityChange?: (productId: string, quantity: number) => void;
 }
 
 const IncomingItemsTable: React.FC<IncomingItemsTableProps> = ({
   items,
   checkedItemIds,
   isLoading,
+  isBatchEditMode = false,
   onToggleItem,
   onEditItem,
   onDeleteItem,
+  onQuantityChange,
 }) => {
   const [sortColumn, setSortColumn] = useState<string>("productName");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -194,6 +198,7 @@ const IncomingItemsTable: React.FC<IncomingItemsTableProps> = ({
                           : index % 2 === 0
                           ? "bg-white"
                           : "bg-gray-50/30",
+                        isBatchEditMode && isSelected ? "bg-blue-50/80" : "",
                         "hover:bg-gray-50"
                       )}
                     >
@@ -228,11 +233,27 @@ const IncomingItemsTable: React.FC<IncomingItemsTableProps> = ({
                         {item.previousQuantity}
                       </td>
                       <td className="px-6 py-4 font-medium">
-                        <span className="text-green-500">
-                          {item.quantity > 0
-                            ? `+${item.quantity}`
-                            : item.quantity}
-                        </span>
+                        {isBatchEditMode && onQuantityChange ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-green-500">+</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value) || 0;
+                                onQuantityChange(item.productId, value);
+                              }}
+                              className="w-16 h-8 text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-green-500">
+                            {item.quantity > 0
+                              ? `+${item.quantity}`
+                              : item.quantity}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-gray-900">
                         {item.newQuantity}

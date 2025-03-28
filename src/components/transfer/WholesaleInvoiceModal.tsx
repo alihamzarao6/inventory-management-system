@@ -1,10 +1,11 @@
-"use client"
+"use client";
 import React, { useRef } from "react";
-import { X, Share, Printer } from "lucide-react";
+import { Share, Printer } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransferFormData } from "@/types/transfers";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
+import { createHandleExport } from "@/utils/pdfExport";
 
 interface WholesaleInvoiceModalProps {
   open: boolean;
@@ -68,6 +69,14 @@ const WholesaleInvoiceModal: React.FC<WholesaleInvoiceModalProps> = ({
 
   const invoiceData = getInvoiceData();
 
+  // Create export handler using our utility function
+  const handleExport = createHandleExport(
+    // @ts-ignore
+    printRef,
+    "wholesale-invoice",
+    destinationLocationName.replace(/\s+/g, "-").toLowerCase()
+  );
+
   // Print document
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -99,17 +108,10 @@ const WholesaleInvoiceModal: React.FC<WholesaleInvoiceModalProps> = ({
     printWindow.close();
   };
 
-  // Export document
-  const handleExport = () => {
-    // In a real app, this would generate a PDF
-    console.log("Export wholesale invoice");
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[850px] bg-gray-100 p-0 overflow-hidden flex flex-col h-[90vh]">
         <div className="flex justify-between items-center p-4 bg-white border-b">
-
           <div className="flex gap-2">
             <Button
               variant="outline"

@@ -509,7 +509,7 @@ const ProductsPage = () => {
                 </>
               )}
             </Button>
-            <Button onClick={() => setAddProductOpen(true)}>
+            <Button variant="outline" onClick={() => setAddProductOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Add Product
             </Button>
           </div>
@@ -544,23 +544,23 @@ const ProductsPage = () => {
             open={addProductOpen}
             onOpenChange={setAddProductOpen}
             onSubmit={handleAddProduct}
-            initialData={
-              selectedProduct
-                ? {
-                    name: selectedProduct.name,
-                    category: selectedProduct.category,
-                    initialQuantity: 0,
-                    reorderLevel: selectedProduct.reorderLevel,
-                    initialLocationId:
-                      selectedProduct.locations[0]?.locationId || "",
-                    costPrice: selectedProduct.costPrice,
-                    wholesalePrice: selectedProduct.wholesalePrice,
-                    retailPrice: selectedProduct.retailPrice,
-                    note: selectedProduct.note,
-                    image: selectedProduct.image,
-                  }
-                : undefined
-            }
+            // initialData={
+            //   selectedProduct
+            //     ? {
+            //         name: selectedProduct.name,
+            //         category: selectedProduct.category,
+            //         initialQuantity: 0,
+            //         reorderLevel: selectedProduct.reorderLevel,
+            //         initialLocationId:
+            //           selectedProduct.locations[0]?.locationId || "",
+            //         costPrice: selectedProduct.costPrice,
+            //         wholesalePrice: selectedProduct.wholesalePrice,
+            //         retailPrice: selectedProduct.retailPrice,
+            //         note: selectedProduct.note,
+            //         image: selectedProduct.image,
+            //       }
+            //     : undefined
+            // }
             similarNameWarning={similarNameWarning}
             setSimilarNameWarning={setSimilarNameWarning}
           />
