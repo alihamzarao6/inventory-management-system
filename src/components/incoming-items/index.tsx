@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -564,7 +563,8 @@ const IncomingItemsPage = () => {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
-      <div className="mb-8 flex justify-between items-center">
+      {/* Title Row with Action Buttons */}
+      <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Incoming Items</h1>
           <p className="text-gray-500">
@@ -576,122 +576,18 @@ const IncomingItemsPage = () => {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            className="border-gray-300"
-            onClick={() => router.push("/incoming-items/history")}
-          >
-            View History
-          </Button>
-          {/* <Button
-            variant="outline"
-            onClick={handleExport}
-            className="flex items-center gap-2"
-          >
-            <Share className="h-4 w-4" />
-            Share
-          </Button> */}
-        </div>
-      </div>
-
-      {/* Location Selector as Dropdown */}
-      <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
-        <div>
-          <Popover
-            open={isLocationFilterOpen}
-            onOpenChange={setIsLocationFilterOpen}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "h-12 px-4 border-gray-200 bg-white flex items-center justify-between min-w-[210px]",
-                  selectedLocationIds.length > 0 &&
-                    "bg-blue-50 text-blue-600 border-blue-200"
-                )}
-              >
-                <span>{getLocationFilterLabel()}</span>
-                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-80 p-0 max-h-[600px] overflow-y-auto"
-              align="start"
-            >
-              <LocationFilters
-                selectedLocationIds={selectedLocationIds}
-                onLocationSelect={handleLocationSelect}
-                showCustomers={true}
-                allowMultipleSelection={true}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div>
-          <Select
-            value={selectedSupplierId}
-            onValueChange={handleSupplierChange}
-          >
-            <SelectTrigger className="w-[220px] h-12">
-              <SelectValue placeholder="Select a Supplier" />
-            </SelectTrigger>
-            <SelectContent>
-              {MOCK_SUPPLIERS.map((supplier) => (
-                <SelectItem key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </SelectItem>
-              ))}
-              <SelectItem
-                value="create-new"
-                className="text-blue-600 font-medium"
-              >
-                + Create New Supplier
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Product Actions and Search */}
-      <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            type="search"
-            placeholder="Search items..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 border h-10"
             onClick={toggleBatchEditMode}
             disabled={
               selectedLocationIds.length === 0 || selectedItems.length === 0
             }
           >
             <Edit className="h-4 w-4" />
-            <span>{isBatchEditMode ? "Done Editing" : "Batch Edit"}</span>
+            <span>Batch Edit</span>
           </Button>
-
-          {/* <Button
-            variant="outline"
-            className="flex items-center gap-1"
-            onClick={handleOpenEditQuantities}
-            disabled={
-              selectedLocationIds.length === 0 || checkedItemIds.length === 0
-            }
-          >
-            <Edit className="h-4 w-4" />
-            <span>Set Quantities</span>
-          </Button> */}
-
           <Button
             variant="outline"
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 border h-10"
             onClick={handleAddProducts}
             disabled={selectedLocationIds.length === 0}
           >
@@ -699,6 +595,81 @@ const IncomingItemsPage = () => {
             <span>Add Products</span>
           </Button>
         </div>
+      </div>
+
+      {/* Filter Row */}
+      <div className="flex items-center gap-4 mb-6">
+        {/* Search Bar */}
+        <div className="relative flex-1 max-w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Input
+            type="search"
+            placeholder="Search items..."
+            className="pl-10 h-12 bg-white border"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Location Filter */}
+        <Popover
+          open={isLocationFilterOpen}
+          onOpenChange={setIsLocationFilterOpen}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "h-12 px-4 border-gray-200 bg-white flex items-center justify-between w-[220px]",
+                selectedLocationIds.length > 0 &&
+                  "bg-blue-50 text-blue-600 border-blue-200"
+              )}
+            >
+              <span>{getLocationFilterLabel()}</span>
+              <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-80 p-0 max-h-[600px] overflow-y-auto"
+            align="start"
+          >
+            <LocationFilters
+              selectedLocationIds={selectedLocationIds}
+              onLocationSelect={handleLocationSelect}
+              showCustomers={true}
+              allowMultipleSelection={true}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {/* Supplier Dropdown */}
+        <Select value={selectedSupplierId} onValueChange={handleSupplierChange}>
+          <SelectTrigger className="w-[220px] h-12 border-gray-200 bg-white">
+            <SelectValue placeholder="Select a Supplier" />
+          </SelectTrigger>
+          <SelectContent>
+            {MOCK_SUPPLIERS.map((supplier) => (
+              <SelectItem key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </SelectItem>
+            ))}
+            <SelectItem
+              value="create-new"
+              className="text-blue-600 font-medium"
+            >
+              + Create New Supplier
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* View History Button */}
+        <Button
+          variant="outline"
+          className="h-12 border-gray-200 bg-white w-28"
+          onClick={() => router.push("/incoming-items/history")}
+        >
+          View History
+        </Button>
       </div>
 
       {/* Incoming Items Table */}
@@ -717,7 +688,7 @@ const IncomingItemsPage = () => {
       <div className="mt-6">
         <textarea
           placeholder="Add notes about this incoming inventory..."
-          className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300"
+          className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
           rows={3}
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -760,16 +731,6 @@ const IncomingItemsPage = () => {
         onAddNewProduct={handleAddNewProduct}
       />
 
-      {/* Edit Quantities Modal */}
-      {/* <EditQuantitiesModal
-        open={editQuantitiesModalOpen}
-        onOpenChange={setEditQuantitiesModalOpen}
-        items={selectedItems.filter((item) =>
-          checkedItemIds.includes(item.productId)
-        )}
-        onUpdateQuantities={handleUpdateQuantities}
-      /> */}
-
       {/* Add New Product Form */}
       <AddProductForm
         open={addProductFormOpen}
@@ -780,6 +741,16 @@ const IncomingItemsPage = () => {
             ? { initialLocationId: selectedLocationIds[0] }
             : undefined
         }
+      />
+
+      {/* Edit Quantities Modal */}
+      <EditQuantitiesModal
+        open={editQuantitiesModalOpen}
+        onOpenChange={setEditQuantitiesModalOpen}
+        items={selectedItems.filter((item) =>
+          checkedItemIds.includes(item.productId)
+        )}
+        onUpdateQuantities={handleUpdateQuantities}
       />
 
       {/* Adjustment Form Modal */}

@@ -290,23 +290,23 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {isEditMode && isEditing ? (
+                        {/* {isEditMode && isEditing ? (
                           <Input
                             type="number"
                             defaultValue={totalQuantity}
                             className="px-2 py-1 h-8 w-20"
                           />
-                        ) : (
-                          <div>
-                            <div className="text-gray-900">{totalQuantity}</div>
-                            <div
-                              className="text-sm text-blue-600 hover:underline cursor-pointer"
-                              onClick={() => onViewProductDetails(product)}
-                            >
-                              Locations ({product.locations.length})
-                            </div>
+                        ) : ( */}
+                        <div>
+                          <div className="text-gray-900">{totalQuantity}</div>
+                          <div
+                            className="text-sm text-blue-600 hover:underline cursor-pointer"
+                            onClick={() => onViewProductDetails(product)}
+                          >
+                            Locations ({product.locations.length})
                           </div>
-                        )}
+                        </div>
+                        {/* )} */}
                       </td>
                       <td className="px-6 py-4">
                         {isEditMode && isEditing ? (
@@ -440,7 +440,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
           </table>
         </div>
       </div>
-      
+
       {/* Pagination and Summary */}
       <div className="flex justify-between items-center mt-6">
         <div className="text-sm text-gray-500">
