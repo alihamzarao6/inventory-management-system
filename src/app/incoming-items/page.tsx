@@ -1,4 +1,4 @@
-import IncomingItemsPage from "@/components/incoming-items";
+import { IncomingItemsPage } from "@/components/incoming-items";
 import React from "react";
 
 const IncomingItemsIndex = () => {

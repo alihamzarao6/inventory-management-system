@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -9,6 +10,9 @@ import {
   Share,
   Printer,
   ChevronDown,
+  ArrowRight,
+  Check,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +30,8 @@ import EditQuantitiesModal from "@/components/incoming-items/EditQuantitiesModal
 import AddProductForm from "@/components/products/AddProductForm";
 import CreateSupplierForm from "@/components/incoming-items/CreateSupplierForm";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+import ProductSelectionModal from "@/components/incoming-items/ProductSelectionModal";
+import { Steps, Step } from "@/components/ui/steps";
 import { createHandleExport } from "@/utils/pdfExport";
 import {
   Select,
@@ -51,10 +57,19 @@ const MOCK_SUPPLIERS = [
   { id: "sup-5", name: "Prime Vendors Inc" },
 ];
 
-const IncomingItemsPage = () => {
+export const IncomingItemsPage = () => {
   const router = useRouter();
   const { showToast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Step management
+  const [currentStep, setCurrentStep] = useState(1);
+  const steps = [
+    { title: "Select Locations", description: "Choose locations and supplier" },
+    { title: "Select Products", description: "Choose products to add" },
+    { title: "Set Quantities", description: "Set incoming quantities" },
+    { title: "Complete", description: "Finalize and complete" },
+  ];
 
   // State management
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
@@ -71,6 +86,8 @@ const IncomingItemsPage = () => {
   const [isBatchEditMode, setIsBatchEditMode] = useState(false);
 
   // Modals
+  const [productSelectionModalOpen, setProductSelectionModalOpen] =
+    useState(false);
   const [addProductsModalOpen, setAddProductsModalOpen] = useState(false);
   const [adjustmentFormOpen, setAdjustmentFormOpen] = useState(false);
   const [editQuantitiesModalOpen, setEditQuantitiesModalOpen] = useState(false);
@@ -339,6 +356,11 @@ const IncomingItemsPage = () => {
     });
 
     setEditQuantitiesModalOpen(false);
+
+    // If we're in step 2, automatically proceed to step 3 after setting quantities
+    if (currentStep === 2) {
+      setCurrentStep(3);
+    }
   };
 
   // Update quantity directly in table
@@ -375,6 +397,8 @@ const IncomingItemsPage = () => {
     }
 
     setAddProductsModalOpen(false); // Close the add products modal first
+    setProductSelectionModalOpen(false); // Close the product selection modal if open
+
     setTimeout(() => {
       setAddProductFormOpen(true); // Then open the add product form
     }, 100);
@@ -435,6 +459,19 @@ const IncomingItemsPage = () => {
     // Mark selected products as checked
     setCheckedItemIds(selectedProductIds);
     setAddProductsModalOpen(false);
+  };
+
+  // Handle products selection from the product selection modal
+  const handleProductSelectionCompleted = (
+    selectedItems: StockAdjustmentItem[]
+  ) => {
+    setSelectedItems(selectedItems);
+    // Check all items by default
+    setCheckedItemIds(selectedItems.map((item) => item.productId));
+    setProductSelectionModalOpen(false);
+
+    // Move to step 2 now that we have items selected
+    setCurrentStep(2);
   };
 
   // Open adjustment form for editing
@@ -559,12 +596,60 @@ const IncomingItemsPage = () => {
     router.push(`/incoming-items/completed?id=${incomingItemsRecord.id}`);
   };
 
+  // Check if current step is valid to proceed
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return selectedLocationIds.length > 0 && !!selectedSupplierId;
+      case 2:
+        return (
+          selectedItems.length > 0 &&
+          selectedItems.some((item) => item.quantity > 0)
+        );
+      case 3:
+        return selectedItems
+          .filter((item) => checkedItemIds.includes(item.productId))
+          .every((item) => item.quantity > 0);
+      default:
+        return false;
+    }
+  };
+
+  // Handle next step
+  const handleNextStep = () => {
+    if (currentStep === 1) {
+      // Make sure availableProducts is loaded before opening the modal
+      if (isLoading) {
+        showToast("Loading products, please wait...", "info");
+        return;
+      }
+
+      if (availableProducts.length === 0) {
+        showToast("No products found for the selected location", "warning");
+        return;
+      }
+
+      // Now open the modal with products available
+      setProductSelectionModalOpen(true);
+    } else if (currentStep === 2) {
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      handleComplete();
+    }
+  };
+
+  // Handle going back a step
+  const handlePreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   const filteredItems = getFilteredItems();
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
-      {/* Title Row with Action Buttons */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Incoming Items</h1>
           <p className="text-gray-500">
@@ -576,140 +661,245 @@ const IncomingItemsPage = () => {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex items-center gap-1 border h-10"
+            className="flex items-center gap-1 border-gray-300 h-12"
             onClick={toggleBatchEditMode}
             disabled={
-              selectedLocationIds.length === 0 || selectedItems.length === 0
+              currentStep !== 2 ||
+              selectedLocationIds.length === 0 ||
+              selectedItems.length === 0
             }
           >
             <Edit className="h-4 w-4" />
-            <span>Batch Edit</span>
+            <span>{isBatchEditMode ? "Done Editing" : "Batch Edit"}</span>
           </Button>
           <Button
             variant="outline"
-            className="flex items-center gap-1 border h-10"
-            onClick={handleAddProducts}
-            disabled={selectedLocationIds.length === 0}
+            className="flex items-center gap-1 border-gray-300 h-12"
+            onClick={() => router.push("/incoming-items/history")}
           >
-            <Plus className="h-4 w-4" />
-            <span>Add Products</span>
+            <Share className="h-4 w-4" />
+            <span>View History</span>
           </Button>
         </div>
       </div>
 
-      {/* Filter Row */}
-      <div className="flex items-center gap-4 mb-6">
-        {/* Search Bar */}
-        <div className="relative flex-1 max-w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            type="search"
-            placeholder="Search items..."
-            className="pl-10 h-12 bg-white border"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+      {/* Progress Steps */}
+      <div className="mb-6">
+        <Steps currentStep={currentStep} className="w-full mb-4">
+          <Step
+            title="Select Locations"
+            description="Choose locations and supplier"
           />
-        </div>
+          <Step title="Select Products" description="Choose products to add" />
+          <Step title="Set Quantities" description="Set incoming quantities" />
+          <Step title="Complete" description="Finalize and complete" />
+        </Steps>
+      </div>
 
-        {/* Location Filter */}
-        <Popover
-          open={isLocationFilterOpen}
-          onOpenChange={setIsLocationFilterOpen}
-        >
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "h-12 px-4 border-gray-200 bg-white flex items-center justify-between w-[220px]",
-                selectedLocationIds.length > 0 &&
-                  "bg-blue-50 text-blue-600 border-blue-200"
+      {/* Step 1: Location Selection */}
+      {currentStep === 1 && (
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Step 1: Select Locations and Supplier
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Location Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Locations <span className="text-red-500">*</span>
+              </label>
+              <Popover
+                open={isLocationFilterOpen}
+                onOpenChange={setIsLocationFilterOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "h-12 px-4 border-gray-300 bg-white flex items-center justify-between w-full",
+                      selectedLocationIds.length > 0 &&
+                        "bg-blue-50 text-blue-600 border-blue-200"
+                    )}
+                  >
+                    <span>{getLocationFilterLabel()}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-80 p-0 max-h-[600px] overflow-y-auto"
+                  align="start"
+                >
+                  <LocationFilters
+                    selectedLocationIds={selectedLocationIds}
+                    onLocationSelect={handleLocationSelect}
+                    showCustomers={true}
+                    allowMultipleSelection={true}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Display selected locations */}
+              {selectedLocationIds.length > 0 && (
+                <div className="mt-2 text-sm text-gray-500">
+                  Selected: {getLocationNames()}
+                </div>
               )}
-            >
-              <span>{getLocationFilterLabel()}</span>
-              <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-80 p-0 max-h-[600px] overflow-y-auto"
-            align="start"
-          >
-            <LocationFilters
-              selectedLocationIds={selectedLocationIds}
-              onLocationSelect={handleLocationSelect}
-              showCustomers={true}
-              allowMultipleSelection={true}
-            />
-          </PopoverContent>
-        </Popover>
+            </div>
 
-        {/* Supplier Dropdown */}
-        <Select value={selectedSupplierId} onValueChange={handleSupplierChange}>
-          <SelectTrigger className="w-[220px] h-12 border-gray-200 bg-white">
-            <SelectValue placeholder="Select a Supplier" />
-          </SelectTrigger>
-          <SelectContent>
-            {MOCK_SUPPLIERS.map((supplier) => (
-              <SelectItem key={supplier.id} value={supplier.id}>
-                {supplier.name}
-              </SelectItem>
-            ))}
-            <SelectItem
-              value="create-new"
-              className="text-blue-600 font-medium"
-            >
-              + Create New Supplier
-            </SelectItem>
-          </SelectContent>
-        </Select>
+            {/* Supplier Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Supplier <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={selectedSupplierId}
+                onValueChange={handleSupplierChange}
+              >
+                <SelectTrigger className="w-full h-12 border-gray-300">
+                  <SelectValue placeholder="Select a Supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOCK_SUPPLIERS.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem
+                    value="create-new"
+                    className="text-blue-600 font-medium"
+                  >
+                    + Create New Supplier
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-        {/* View History Button */}
-        <Button
-          variant="outline"
-          className="h-12 border-gray-200 bg-white w-28"
-          onClick={() => router.push("/incoming-items/history")}
-        >
-          View History
-        </Button>
-      </div>
+          {/* Add info text about what supplier means in this context */}
+          <div className="text-sm text-gray-500 italic mt-2">
+            The selected supplier will be recorded as the source of these
+            incoming items.
+          </div>
+        </div>
+      )}
 
-      {/* Incoming Items Table */}
-      <IncomingItemsTable
-        items={filteredItems}
-        checkedItemIds={checkedItemIds}
-        isLoading={isLoading}
-        onToggleItem={toggleItemSelection}
-        onEditItem={handleEditItem}
-        onDeleteItem={handleDeleteItemClick}
-        isBatchEditMode={isBatchEditMode}
-        onQuantityChange={handleQuantityChange}
-      />
+      {/* Step 2 & 3: Products and Quantities */}
+      {(currentStep === 2 || currentStep === 3) && (
+        <>
+          {/* Search and actions */}
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="search"
+                placeholder="Search items..."
+                className="pl-10 h-12 border-gray-300"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-      {/* Note Field */}
-      <div className="mt-6">
-        <textarea
-          placeholder="Add notes about this incoming inventory..."
-          className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200"
-          rows={3}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
+            <div className="flex gap-2">
+              {currentStep === 2 && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="h-12 border-gray-300 flex items-center gap-1"
+                    onClick={handleOpenEditQuantities}
+                    disabled={checkedItemIds.length === 0}
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span>Edit Quantities</span>
+                  </Button>
 
-      {/* Action Buttons */}
+                  <Button
+                    variant="outline"
+                    className="h-12 border-gray-300 flex items-center gap-1"
+                    onClick={() => setProductSelectionModalOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Products</span>
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <IncomingItemsTable
+            items={filteredItems}
+            checkedItemIds={checkedItemIds}
+            isLoading={isLoading}
+            onToggleItem={toggleItemSelection}
+            onEditItem={handleEditItem}
+            onDeleteItem={handleDeleteItemClick}
+            isBatchEditMode={isBatchEditMode}
+            onQuantityChange={handleQuantityChange}
+          />
+
+          {/* Note Field - only show in step 3 */}
+          {currentStep === 3 && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notes (Optional)
+              </label>
+              <textarea
+                placeholder="Add notes about this incoming inventory..."
+                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300"
+                rows={3}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Navigation buttons */}
       <div className="mt-6 flex justify-between">
+        {currentStep > 1 ? (
+          <Button
+            variant="outline"
+            className="border-gray-300 flex items-center gap-1"
+            onClick={handlePreviousStep}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            onClick={() => router.back()}
+          >
+            Cancel
+          </Button>
+        )}
+
         <Button
-          variant="ghost"
-          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-          onClick={() => router.back()}
+          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1"
+          disabled={!isStepValid()}
+          onClick={handleNextStep}
         >
-          Cancel
-        </Button>
-        <Button
-          className="bg-green-500 hover:bg-green-600 text-white px-8"
-          disabled={checkedItemIds.length === 0}
-          onClick={handleComplete}
-        >
-          Complete Incoming Items
+          {currentStep === 1 && (
+            <>
+              Continue to Select Products
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </>
+          )}
+          {currentStep === 2 && (
+            <>
+              Review & Complete
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </>
+          )}
+          {currentStep === 3 && (
+            <>
+              <Check className="h-4 w-4" />
+              Complete Incoming Items
+            </>
+          )}
         </Button>
       </div>
 
@@ -720,7 +910,18 @@ const IncomingItemsPage = () => {
         onSubmit={handleCreateSupplier}
       />
 
-      {/* Add Products Modal */}
+      {/* Product Selection Modal for Step 1->2 */}
+      <ProductSelectionModal
+        open={productSelectionModalOpen}
+        onOpenChange={setProductSelectionModalOpen}
+        onProductsSelected={handleProductSelectionCompleted}
+        selectedLocationIds={selectedLocationIds}
+        availableProducts={availableProducts}
+        existingItems={selectedItems}
+        onAddNewProduct={handleAddNewProduct}
+      />
+
+      {/* Add Products Modal for adding more products in Step 2 */}
       <AddProductsModal
         open={addProductsModalOpen}
         onOpenChange={setAddProductsModalOpen}
@@ -729,6 +930,16 @@ const IncomingItemsPage = () => {
         availableProducts={availableProducts}
         checkedItemIds={checkedItemIds}
         onAddNewProduct={handleAddNewProduct}
+      />
+
+      {/* Edit Quantities Modal */}
+      <EditQuantitiesModal
+        open={editQuantitiesModalOpen}
+        onOpenChange={setEditQuantitiesModalOpen}
+        items={selectedItems.filter((item) =>
+          checkedItemIds.includes(item.productId)
+        )}
+        onUpdateQuantities={handleUpdateQuantities}
       />
 
       {/* Add New Product Form */}
@@ -741,16 +952,6 @@ const IncomingItemsPage = () => {
             ? { initialLocationId: selectedLocationIds[0] }
             : undefined
         }
-      />
-
-      {/* Edit Quantities Modal */}
-      <EditQuantitiesModal
-        open={editQuantitiesModalOpen}
-        onOpenChange={setEditQuantitiesModalOpen}
-        items={selectedItems.filter((item) =>
-          checkedItemIds.includes(item.productId)
-        )}
-        onUpdateQuantities={handleUpdateQuantities}
       />
 
       {/* Adjustment Form Modal */}
@@ -836,5 +1037,3 @@ const IncomingItemsPage = () => {
     </div>
   );
 };
-
-export default IncomingItemsPage;
