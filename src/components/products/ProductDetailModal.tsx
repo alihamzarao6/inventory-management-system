@@ -142,7 +142,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                                 Category: {product.category}
                               </p>
                             </div>
-                            <Button
+                            {/* <Button
                               variant="outline"
                               size="sm"
                               className="flex items-center gap-1"
@@ -150,7 +150,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                             >
                               <Edit className="h-4 w-4" />
                               <span>Edit</span>
-                            </Button>
+                            </Button> */}
                           </div>
 
                           <p className="text-sm">
@@ -243,7 +243,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                                 Quantity: {location.quantity}
                               </p>
                             </div>
-                            <div className="flex gap-2">
+                            {/* <div className="flex gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -274,7 +274,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                               >
                                 Incoming Items
                               </Button>
-                            </div>
+                            </div> */}
                           </div>
                         </div>
                       );

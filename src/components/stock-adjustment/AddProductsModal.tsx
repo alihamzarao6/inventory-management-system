@@ -15,20 +15,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/utils";
 import { Product } from "@/types/products";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
+import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
 
 interface AddProductsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  locationId: string;
-  checkedItemIds: string[]; // Renamed from existingItems
-  onSelectionChanged: (productIds: string[]) => void; // Renamed from onProductsAdded
-  availableProducts: Product[]; // Products available at the selected location
+  locationIds: string[]; // Changed from locationId to locationIds
+  checkedItemIds: string[];
+  onSelectionChanged: (productIds: string[]) => void;
+  availableProducts: Product[];
 }
 
 const AddProductsModal: React.FC<AddProductsModalProps> = ({
   open,
   onOpenChange,
-  locationId,
+  locationIds,
   checkedItemIds,
   onSelectionChanged,
   availableProducts,
@@ -113,40 +114,50 @@ const AddProductsModal: React.FC<AddProductsModalProps> = ({
     );
   };
 
-  // Get item quantity for this location
+  // Get item quantity across all selected locations
   const getItemQuantity = (product: Product): number => {
-    if (locationId.startsWith("sub-")) {
-      // For sub-location, get quantity specific to this sub-location
-      const locationData = product.locations.find(
-        (loc) => loc.locationId === locationId && loc.isSubLocation
-      );
-      return locationData?.quantity || 0;
-    } else {
-      // For main location, sum quantities in this location and all its sub-locations
-      let totalQuantity = 0;
+    let totalQuantity = 0;
 
-      // Add quantity in the main location
-      const mainLocationData = product.locations.find(
-        (loc) => loc.locationId === locationId && !loc.isSubLocation
-      );
-
-      if (mainLocationData) {
-        totalQuantity += mainLocationData.quantity;
+    // Process each location ID
+    locationIds.forEach((locationId) => {
+      // Customer locations
+      if (locationId.startsWith("cust-")) {
+        // For customers, you might have special logic or just use a default value
+        totalQuantity += 10; // Example default value
       }
-
-      // Add quantities from all sub-locations
-      const subLocationIds = MOCK_SUB_LOCATIONS.filter(
-        (sl) => sl.parentId === locationId
-      ).map((sl) => sl.id);
-
-      product.locations.forEach((loc) => {
-        if (loc.isSubLocation && subLocationIds.includes(loc.locationId)) {
-          totalQuantity += loc.quantity;
+      // Sub-locations
+      else if (locationId.startsWith("sub-")) {
+        const locationData = product.locations.find(
+          (loc) => loc.locationId === locationId && loc.isSubLocation
+        );
+        if (locationData) {
+          totalQuantity += locationData.quantity;
         }
-      });
+      }
+      // Main locations
+      else {
+        // Add quantity in the main location
+        const mainLocationData = product.locations.find(
+          (loc) => loc.locationId === locationId && !loc.isSubLocation
+        );
+        if (mainLocationData) {
+          totalQuantity += mainLocationData.quantity;
+        }
 
-      return totalQuantity;
-    }
+        // Add quantities from all sub-locations of this main location
+        const subLocationIds = MOCK_SUB_LOCATIONS.filter(
+          (sl) => sl.parentId === locationId
+        ).map((sl) => sl.id);
+
+        product.locations.forEach((loc) => {
+          if (loc.isSubLocation && subLocationIds.includes(loc.locationId)) {
+            totalQuantity += loc.quantity;
+          }
+        });
+      }
+    });
+
+    return totalQuantity;
   };
 
   // Sort products
@@ -325,7 +336,7 @@ const AddProductsModal: React.FC<AddProductsModalProps> = ({
                     >
                       {searchQuery
                         ? "No products found matching your search"
-                        : "No products available in this location"}
+                        : "No products available in these locations"}
                     </td>
                   </tr>
                 )}

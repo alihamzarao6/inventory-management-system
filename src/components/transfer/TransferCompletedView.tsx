@@ -109,11 +109,11 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
   ];
 
   return (
-    <div className="p-4 bg-white min-h-screen">
+    <div className="p-4 min-h-screen">
       <div className="max-w-[1200px] mx-auto">
         <div className="flex items-center mb-6 gap-4">
           <Button
-            variant="outline"
+            // variant="outline"
             onClick={onBackToTransfers}
             className="gap-2"
           >
@@ -153,7 +153,7 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
               <div className="flex gap-4 mt-2">
                 <Button
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 bg-white"
                   onClick={() => setIsDeliveryNoteOpen(true)}
                 >
                   <FileText className="h-4 w-4" />
@@ -161,7 +161,7 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
                 </Button>
                 <Button
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 bg-white"
                   onClick={() => setIsInvoiceOptionsOpen(true)}
                 >
                   <Box className="h-4 w-4" />

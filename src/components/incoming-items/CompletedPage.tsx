@@ -271,7 +271,7 @@ export const CompletedPage = () => {
           <Button
             variant="outline"
             onClick={handlePrint}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white"
           >
             <Printer className="h-4 w-4" />
             Print
@@ -279,7 +279,7 @@ export const CompletedPage = () => {
           <Button
             variant="outline"
             onClick={handleExport}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white"
           >
             <Share className="h-4 w-4" />
             Export

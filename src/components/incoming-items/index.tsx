@@ -652,16 +652,11 @@ export const IncomingItemsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Incoming Items</h1>
-          <p className="text-gray-500">
-            {selectedLocationIds.length > 0
-              ? `Add new inventory to ${getLocationNames()}`
-              : "Select locations to add new inventory"}
-          </p>
         </div>
         <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex items-center gap-1 border-gray-300 h-12"
+            className="flex items-center gap-1 border-gray-300 h-12 bg-white"
             onClick={toggleBatchEditMode}
             disabled={
               currentStep !== 2 ||
@@ -674,7 +669,7 @@ export const IncomingItemsPage = () => {
           </Button>
           <Button
             variant="outline"
-            className="flex items-center gap-1 border-gray-300 h-12"
+            className="flex items-center gap-1 border-gray-300 h-12 bg-white"
             onClick={() => router.push("/incoming-items/history")}
           >
             <Share className="h-4 w-4" />
@@ -688,11 +683,20 @@ export const IncomingItemsPage = () => {
         <Steps currentStep={currentStep} className="w-full mb-4">
           <Step
             title="Select Locations"
-            description="Choose locations and supplier"
+            // description="Choose locations and supplier"
           />
-          <Step title="Select Products" description="Choose products to add" />
-          <Step title="Set Quantities" description="Set incoming quantities" />
-          <Step title="Complete" description="Finalize and complete" />
+          <Step
+            title="Select Products"
+            // description="Choose products to add"
+          />
+          <Step
+            title="Set Quantities"
+            // description="Set incoming quantities"
+          />
+          <Step
+            title="Complete"
+            // description="Finalize and complete"
+          />
         </Steps>
       </div>
 
@@ -707,7 +711,8 @@ export const IncomingItemsPage = () => {
             {/* Location Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Locations <span className="text-red-500">*</span>
+                Locations
+                {/* <span className="text-red-500">*</span> */}
               </label>
               <Popover
                 open={isLocationFilterOpen}
@@ -750,7 +755,8 @@ export const IncomingItemsPage = () => {
             {/* Supplier Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Supplier <span className="text-red-500">*</span>
+                Supplier
+                {/* <span className="text-red-500">*</span> */}
               </label>
               <Select
                 value={selectedSupplierId}
@@ -794,7 +800,7 @@ export const IncomingItemsPage = () => {
               <Input
                 type="search"
                 placeholder="Search items..."
-                className="pl-10 h-12 border-gray-300"
+                className="pl-10 h-12 border-gray-300 bg-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -805,7 +811,7 @@ export const IncomingItemsPage = () => {
                 <>
                   <Button
                     variant="outline"
-                    className="h-12 border-gray-300 flex items-center gap-1"
+                    className="h-12 border-gray-300 flex items-center gap-1 bg-white"
                     onClick={handleOpenEditQuantities}
                     disabled={checkedItemIds.length === 0}
                   >
@@ -815,7 +821,7 @@ export const IncomingItemsPage = () => {
 
                   <Button
                     variant="outline"
-                    className="h-12 border-gray-300 flex items-center gap-1"
+                    className="h-12 border-gray-300 flex items-center gap-1 bg-white"
                     onClick={() => setProductSelectionModalOpen(true)}
                   >
                     <Plus className="h-4 w-4" />

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +23,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import LocationFilters from "@/components/products/LocationFilters";
 import { cn } from "@/utils";
 import { StockAdjustment } from "@/types/stockAdjustment";
 import { MOCK_STOCK_ADJUSTMENTS } from "@/constants/mockStockAdjustments";
+import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
+import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
 
 const HistoryPage = () => {
   const router = useRouter();
@@ -35,7 +44,8 @@ const HistoryPage = () => {
     StockAdjustment[]
   >([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
+  const [isLocationFilterOpen, setIsLocationFilterOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState("");
   const [sortColumn, setSortColumn] = useState<string>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -72,9 +82,19 @@ const HistoryPage = () => {
       );
     }
 
-    // Apply location filter
-    if (locationFilter) {
-      result = result.filter((adj) => adj.locationId === locationFilter);
+    // Apply location filter using selectedLocationIds
+    if (selectedLocationIds.length > 0) {
+      result = result.filter((adj) => {
+        // Check if adjustment's locationId matches any of the selected location IDs
+        if (selectedLocationIds.includes(adj.locationId)) {
+          return true;
+        }
+
+        // If the adjustment might be associated with multiple locations (in a real app)
+        // we would check that here. For now, just use the single locationId
+
+        return false;
+      });
     }
 
     // Apply date filter
@@ -154,12 +174,52 @@ const HistoryPage = () => {
   }, [
     adjustments,
     searchTerm,
-    locationFilter,
+    selectedLocationIds,
     dateFilter,
     sortColumn,
     sortDirection,
     activeTab,
   ]);
+
+  // Handle location selection
+  const handleLocationSelect = (
+    locationIds: string[],
+    isCustomer?: boolean
+  ) => {
+    setSelectedLocationIds(locationIds);
+  };
+
+  // Get location filter label
+  const getLocationFilterLabel = () => {
+    if (selectedLocationIds.length === 0) {
+      return "All Locations";
+    }
+
+    if (selectedLocationIds.length === 1) {
+      const locationId = selectedLocationIds[0];
+      // Check if it's a customer
+      const customer = MOCK_CUSTOMERS.find((c) => c.id === locationId);
+      if (customer) {
+        return `Customer: ${customer.name}`;
+      }
+
+      // Check if it's a main location
+      const location = MOCK_LOCATIONS.find((loc) => loc.id === locationId);
+      if (location) {
+        return location.name;
+      }
+
+      // Must be a sub-location
+      const subLocation = MOCK_SUB_LOCATIONS.find((sl) => sl.id === locationId);
+      if (subLocation) {
+        return subLocation.name;
+      }
+
+      return "Location Selected";
+    }
+
+    return `${selectedLocationIds.length} Locations`;
+  };
 
   // Handle sort column click
   const handleSortClick = (column: string) => {
@@ -241,6 +301,11 @@ const HistoryPage = () => {
     }
   };
 
+  // Function to clear location filter
+  const clearLocationFilter = () => {
+    setSelectedLocationIds([]);
+  };
+
   return (
     <div className="p-8 bg-gradient-to-b from-gray-50 to-white min-h-screen">
       <div className="mb-4">
@@ -264,36 +329,53 @@ const HistoryPage = () => {
       </div>
 
       {/* Filters Row */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <div className="relative">
-            <Input
-              type="search"
-              placeholder="Search adjustments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          </div>
+      <div className="flex flex-col md:flex-row gap-4 mb-6 w-full">
+        <div className="relative w-2/3">
+          <Input
+            type="search"
+            placeholder="Search adjustments..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
-        <div className="flex gap-4">
-          <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value=" ">All Locations</SelectItem>
-              <SelectItem value="1">Warehouse 1</SelectItem>
-              <SelectItem value="2">Warehouse 2</SelectItem>
-              <SelectItem value="3">Warehouse 3</SelectItem>
-              <SelectItem value="4">Store 1</SelectItem>
-              <SelectItem value="5">Store 2</SelectItem>
-              <SelectItem value="6">Store 3</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex gap-4 w-1/3">
+          {/* LocationFilters integration */}
+          <Popover
+            open={isLocationFilterOpen}
+            onOpenChange={setIsLocationFilterOpen}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-12 px-4 border-gray-300 bg-white flex items-center justify-between w-full",
+                  selectedLocationIds.length > 0 &&
+                    "bg-blue-50 text-blue-600 border-blue-200"
+                )}
+              >
+                <div className="flex items-center">
+                  <span>{getLocationFilterLabel()}</span>
+                </div>
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="p-0 max-h-[600px] overflow-y-auto"
+              align="start"
+            >
+              <LocationFilters
+                selectedLocationIds={selectedLocationIds}
+                onLocationSelect={handleLocationSelect}
+                showCustomers={true}
+                allowMultipleSelection={true}
+                placeholder="Filter by location..."
+              />
+            </PopoverContent>
+          </Popover>
 
-          <Select value={dateFilter} onValueChange={setDateFilter}>
+          {/* <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filter by date" />
             </SelectTrigger>
@@ -304,9 +386,41 @@ const HistoryPage = () => {
               <SelectItem value="last7days">Last 7 Days</SelectItem>
               <SelectItem value="last30days">Last 30 Days</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
         </div>
       </div>
+
+      {/* Display active filters */}
+      {(selectedLocationIds.length > 0 || dateFilter) && (
+        <div className="mb-4 flex gap-2 items-center">
+          <span className="text-sm text-gray-500">Active filters:</span>
+
+          {selectedLocationIds.length > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100"
+              onClick={clearLocationFilter}
+            >
+              {getLocationFilterLabel()} ×
+            </Button>
+          )}
+
+          {dateFilter && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100"
+              onClick={() => setDateFilter("")}
+            >
+              {dateFilter === "today" && "Today"}
+              {dateFilter === "yesterday" && "Yesterday"}
+              {dateFilter === "last7days" && "Last 7 Days"}
+              {dateFilter === "last30days" && "Last 30 Days"} ×
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="all" onValueChange={setActiveTab}>
@@ -440,7 +554,7 @@ const HistoryPage = () => {
                     className="px-6 py-10 text-center text-gray-500"
                   >
                     {searchTerm ||
-                    locationFilter ||
+                    selectedLocationIds.length > 0 ||
                     dateFilter ||
                     activeTab !== "all"
                       ? "No adjustments found matching your filters"

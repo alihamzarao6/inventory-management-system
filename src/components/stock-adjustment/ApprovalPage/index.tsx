@@ -1,8 +1,14 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+  Printer,
+  Share,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,12 +18,13 @@ import { StockAdjustment, StockAdjustmentItem } from "@/types/stockAdjustment";
 import { ADJUSTMENT_REASONS } from "@/constants/mockStockAdjustments";
 import useToast from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import ExportOptions from "../ExportOptions";
+import { createHandleExport } from "@/utils/pdfExport";
 
 export const ApprovalPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Get adjustment ID from query params
   const adjustmentId = searchParams.get("id");
@@ -31,6 +38,19 @@ export const ApprovalPage = () => {
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [denyDialogOpen, setDenyDialogOpen] = useState(false);
+  const [denyReason, setDenyReason] = useState("");
+  const [denyReasonError, setDenyReasonError] = useState("");
+
+  // Set up export function
+  const handleExport = adjustment
+    ? createHandleExport(
+        //@ts-ignore
+        printRef,
+        "stock-adjustment",
+        `${adjustment.locationName.replace(/\s+/g, "-").toLowerCase()}`
+      )
+    : () => {};
 
   // Load adjustment data
   useEffect(() => {
@@ -86,6 +106,8 @@ export const ApprovalPage = () => {
       };
 
       setAdjustment(mockAdjustment);
+      // Select all items by default
+      setSelectedItemIds(items.map((item) => item.productId));
       setIsLoading(false);
     }, 500);
   }, [adjustmentId, router]);
@@ -192,15 +214,42 @@ export const ApprovalPage = () => {
   // Handle approve action
   const handleApprove = () => {
     // In a real app, this would be an API call
+    const approvedAdjustment = {
+      ...adjustment,
+      status: "approved",
+      approvedBy: "Admin User",
+      approvedAt: new Date().toISOString(),
+      note: note.trim() || "Approved",
+    };
+
     showToast("Adjustment approved successfully", "success");
 
     // Navigate to completion page
     router.push(`/stock-adjustment/completed?id=${adjustmentId}`);
   };
 
+  // Handle deny dialog open
+  const handleDenyClick = () => {
+    setDenyDialogOpen(true);
+  };
+
   // Handle deny action
-  const handleDeny = () => {
+  const handleDenyConfirm = () => {
+    if (!denyReason.trim()) {
+      setDenyReasonError("Please provide a reason for denial");
+      return;
+    }
+
     // In a real app, this would be an API call
+    const deniedAdjustment = {
+      ...adjustment,
+      status: "rejected",
+      rejectedBy: "Admin User",
+      rejectedAt: new Date().toISOString(),
+      note: denyReason,
+    };
+
+    setDenyDialogOpen(false);
     showToast("Adjustment denied", "info");
 
     // Navigate to denied page
@@ -257,19 +306,24 @@ export const ApprovalPage = () => {
             Created: {new Date(adjustment.createdAt).toLocaleDateString()}
           </p>
         </div>
-        <ExportOptions
-          adjustment={adjustment}
-          fileName={`stock-adjustment-${adjustment.id}`}
-        />
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-6">
-        <Input
-          type="search"
-          placeholder="Search items..."
-          className="max-w-md"
-        />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-white"
+          >
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="flex items-center gap-2 bg-white"
+          >
+            <Share className="h-4 w-4" />
+            Share
+          </Button>
+        </div>
       </div>
 
       {/* Items Table */}
@@ -396,7 +450,7 @@ export const ApprovalPage = () => {
                           className="text-blue-600 hover:text-blue-700 p-0 h-auto"
                           onClick={() => handleViewProof(item.proof!)}
                         >
-                          Proof
+                          View Proof
                         </Button>
                       ) : (
                         <span className="text-gray-400 italic">No proof</span>
@@ -410,13 +464,15 @@ export const ApprovalPage = () => {
         </div>
       </div>
 
-      {/* Note Field */}
+      {/* Note Field - Optional for approval */}
       <div className="mb-6">
-        <label className="block text-gray-700 mb-2 font-medium">Note:</label>
+        <label className="block text-gray-700 mb-2 font-medium">
+          Approval Note (Optional):
+        </label>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Add notes about this decision..."
+          placeholder="Add notes about this approval..."
           className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300"
           rows={3}
         />
@@ -427,7 +483,7 @@ export const ApprovalPage = () => {
         <Button
           variant="outline"
           className="bg-red-500 hover:bg-red-600 text-white border-none px-8"
-          onClick={handleDeny}
+          onClick={handleDenyClick}
         >
           Deny
         </Button>
@@ -454,6 +510,117 @@ export const ApprovalPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Deny Reason Dialog */}
+      <Dialog open={denyDialogOpen} onOpenChange={setDenyDialogOpen}>
+        <DialogContent className="sm:max-w-md !bg-white">
+          <DialogTitle>Reason for Denial</DialogTitle>
+          <div className="py-4">
+            <p className="text-gray-500 mb-4">
+              Please provide a reason why this stock adjustment is being denied.
+            </p>
+            <textarea
+              value={denyReason}
+              onChange={(e) => {
+                setDenyReason(e.target.value);
+                if (e.target.value.trim()) {
+                  setDenyReasonError("");
+                }
+              }}
+              placeholder="Enter reason for denial..."
+              className={cn(
+                "w-full p-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300",
+                denyReasonError && "border-red-500 focus:ring-red-300"
+              )}
+              rows={4}
+            />
+            {denyReasonError && (
+              <p className="text-red-500 text-sm mt-1">{denyReasonError}</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDenyDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-500 hover:bg-red-600 text-white"
+              onClick={handleDenyConfirm}
+            >
+              Confirm Denial
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Printable content for export - hidden */}
+      <div className="hidden">
+        <div ref={printRef} className="p-8 bg-white">
+          <h1 className="text-2xl font-bold mb-2">Stock Adjustment Report</h1>
+          <h2 className="text-lg font-semibold text-gray-700 mb-6">
+            Pending Approval - {adjustment.locationName}
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p className="font-medium">Date:</p>
+              <p>{new Date(adjustment.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="font-medium">Status:</p>
+              <p>Pending Approval</p>
+            </div>
+          </div>
+
+          <table className="w-full mb-8 border-collapse">
+            <thead>
+              <tr className="border-t border-b border-gray-300">
+                <th className="py-2 px-4 text-left">Item Name</th>
+                <th className="py-2 px-4 text-left">Category</th>
+                <th className="py-2 px-4 text-right">Previous Qty</th>
+                <th className="py-2 px-4 text-right">Adjustment</th>
+                <th className="py-2 px-4 text-right">New Qty</th>
+                <th className="py-2 px-4 text-left">Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {adjustment.items.map((item) => (
+                <tr key={item.productId} className="border-b border-gray-200">
+                  <td className="py-2 px-4">{item.productName}</td>
+                  <td className="py-2 px-4">{item.category}</td>
+                  <td className="py-2 px-4 text-right">
+                    {item.previousQuantity}
+                  </td>
+                  <td className="py-2 px-4 text-right">
+                    {item.adjustmentType === "Add" ? (
+                      <span className="text-green-600">+{item.quantity}</span>
+                    ) : (
+                      <span className="text-red-600">-{item.quantity}</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-4 text-right font-medium">
+                    {item.newQuantity}
+                  </td>
+                  <td className="py-2 px-4">
+                    {ADJUSTMENT_REASONS.find((r) => r.id === item.reasonId)
+                      ?.description ||
+                      item.customReason ||
+                      ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-8 text-center text-gray-500 text-sm">
+            <p>
+              This document was generated from the Inventory Management System
+            </p>
+            <p>{new Date().toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
+export default ApprovalPage;

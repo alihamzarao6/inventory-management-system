@@ -330,8 +330,8 @@ const CustomerProductsTable: React.FC<CustomerProductsTableProps> = ({
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center items-center gap-2">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -361,7 +361,7 @@ const CustomerProductsTable: React.FC<CustomerProductsTableProps> = ({
                             </Tooltip>
                           </TooltipProvider>
 
-                          <TooltipProvider>
+                          {/* <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -379,7 +379,7 @@ const CustomerProductsTable: React.FC<CustomerProductsTableProps> = ({
                                 Remove from customer
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
+                          </TooltipProvider> */}
                         </div>
                       </td>
                       {isEditMode && (

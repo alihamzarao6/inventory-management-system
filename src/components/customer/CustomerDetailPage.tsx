@@ -329,7 +329,7 @@ const CustomerDetailPage = () => {
               {customer.email} • {customer.phone}
             </p>
           </div>
-          <Button
+          {/* <Button
             variant="outline"
             onClick={() =>
               showToast(
@@ -337,9 +337,10 @@ const CustomerDetailPage = () => {
                 "info"
               )
             }
+            className="bg-white"
           >
             <Edit className="mr-2 h-4 w-4" /> Edit Customer
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -387,7 +388,7 @@ const CustomerDetailPage = () => {
           <h2 className="text-2xl font-bold text-gray-900">
             Customer Products
           </h2>
-          <div className="flex gap-3">
+          {/* <div className="flex gap-3">
             <Button
               variant="outline"
               className={
@@ -406,7 +407,7 @@ const CustomerDetailPage = () => {
             <Button onClick={() => setAddProductOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Add Product
             </Button>
-          </div>
+          </div> */}
         </div>
 
         {/* Filters */}

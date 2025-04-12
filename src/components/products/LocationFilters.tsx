@@ -264,7 +264,7 @@ const LocationFilters: React.FC<LocationFiltersProps> = ({
             placeholder={placeholder}
             value={searchQuery}
             onChange={handleSearchChange}
-            className="pl-8 py-2 h-9 text-sm"
+            className="pl-8 py-2 h-10 text-sm"
           />
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         </div>

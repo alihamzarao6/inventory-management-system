@@ -289,7 +289,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           <Input
             type="search"
             placeholder="Search products..."
-            className="pl-10 h-12 bg-white"
+            className="pl-10 bg-white h-12"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
           />

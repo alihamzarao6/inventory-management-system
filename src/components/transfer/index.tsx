@@ -368,9 +368,9 @@ const TransferModule: React.FC = () => {
   const filteredItems = getFilteredItems();
 
   return (
-    <div className="p-4 bg-white min-h-screen">
+    <div className="p-4 min-h-screen">
       <div className="max-w-[1200px] mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Transfer</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Transfer</h1>
 
         {/* Progress Steps */}
         <div className="mb-8">
@@ -396,7 +396,7 @@ const TransferModule: React.FC = () => {
                 </div>
               </div>
 
-              <Card className="p-4">
+              <Card className="p-4 bg-white">
                 <LocationFilters
                   selectedLocationIds={transferData.sourceLocationIds}
                   onLocationSelect={handleSourceLocationSelect}
@@ -435,7 +435,7 @@ const TransferModule: React.FC = () => {
                 </label>
               </div>
 
-              <Card className="p-4">
+              <Card className="p-4 bg-white">
                 <LocationFilters
                   selectedLocationIds={
                     transferData.destinationLocationId
@@ -473,7 +473,7 @@ const TransferModule: React.FC = () => {
               <Input
                 type="search"
                 placeholder="Search items..."
-                className="pl-10"
+                className="pl-10 bg-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -482,7 +482,7 @@ const TransferModule: React.FC = () => {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 bg-white"
                 onClick={handleRemoveSelectedItems}
                 disabled={selectedItems.length === 0}
               >
@@ -493,7 +493,7 @@ const TransferModule: React.FC = () => {
               {currentStep === 2 && (
                 <Button
                   variant="outline"
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 bg-white"
                   onClick={() => setIsAddItemsModalOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
@@ -755,6 +755,7 @@ const TransferModule: React.FC = () => {
             <Button
               variant="outline"
               onClick={() => setCurrentStep((prev) => prev - 1)}
+              className="bg-white"
             >
               Back
             </Button>
@@ -763,7 +764,7 @@ const TransferModule: React.FC = () => {
             className={
               currentStep === 3
                 ? "bg-green-500 hover:bg-green-600 text-white"
-                : ""
+                : "bg-white"
             }
             onClick={handleNextStep}
             disabled={!isStepValid()}

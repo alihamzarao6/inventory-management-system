@@ -110,7 +110,7 @@ const CustomersPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
           <p className="text-gray-500">Manage your customer accounts</p>
         </div>
-        <Button onClick={() => setAddCustomerOpen(true)}>
+        <Button variant={"outline"} className="bg-white" onClick={() => setAddCustomerOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Customer
         </Button>
       </div>
