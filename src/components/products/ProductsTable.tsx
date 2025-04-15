@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Check,
   ChevronDown,
@@ -32,7 +32,10 @@ interface ProductsTableProps {
   sortColumn?: string;
   sortDirection?: "asc" | "desc";
   isEditMode?: boolean;
-  onSaveEdit?: () => void;
+  selectedProductIds: string[];
+  onSelectedProductsChange: (selectedIds: string[]) => void;
+  onProductFieldChange: (productId: string, field: string, value: any) => void;
+  editedProducts: Record<string, Partial<Product>>;
 }
 
 const ProductsTable: React.FC<ProductsTableProps> = ({
@@ -46,10 +49,29 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
   sortColumn,
   sortDirection,
   isEditMode = false,
-  onSaveEdit,
+  selectedProductIds,
+  onSelectedProductsChange,
+  onProductFieldChange,
+  editedProducts,
 }) => {
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
-  const [editedRows, setEditedRows] = useState<Record<string, boolean>>({});
+  // Store original values to detect changes
+  const [originalValues, setOriginalValues] = useState<Record<string, any>>({});
+
+  // Set original values when products or selection changes
+  useEffect(() => {
+    const values: Record<string, any> = {};
+    products.forEach((product) => {
+      values[product.id] = {
+        name: product.name,
+        category: product.category,
+        costPrice: product.costPrice,
+        wholesalePrice: product.wholesalePrice,
+        retailPrice: product.retailPrice,
+        note: product.note || "",
+      };
+    });
+    setOriginalValues(values);
+  }, [products]);
 
   // Handle sort column click
   const handleSortClick = (column: string) => {
@@ -77,25 +99,42 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
 
   // Toggle row selection
   const toggleRowSelection = (productId: string) => {
-    setSelectedProductIds((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+    const updatedSelection = selectedProductIds.includes(productId)
+      ? selectedProductIds.filter((id) => id !== productId)
+      : [...selectedProductIds, productId];
+
+    onSelectedProductsChange(updatedSelection);
   };
 
   // Toggle select all
   const toggleSelectAll = () => {
     if (selectedProductIds.length === products.length) {
-      setSelectedProductIds([]);
+      onSelectedProductsChange([]);
     } else {
-      setSelectedProductIds(products.map((p) => p.id));
+      onSelectedProductsChange(products.map((p) => p.id));
     }
   };
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = "$") => {
     return `${currency} ${amount.toFixed(2)}`;
+  };
+
+  // Handle input field change
+  const handleInputChange = (
+    productId: string,
+    field: string,
+    value: any,
+    type: string = "text"
+  ) => {
+    let parsedValue = value;
+
+    if (type === "number") {
+      parsedValue = parseFloat(value);
+      if (isNaN(parsedValue)) parsedValue = 0;
+    }
+
+    onProductFieldChange(productId, field, parsedValue);
   };
 
   // Generate pagination
@@ -135,6 +174,26 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     }
 
     return withEllipsis;
+  };
+
+  // Check if a product is editable (selected + edit mode)
+  const isProductEditable = (productId: string) => {
+    return isEditMode && selectedProductIds.includes(productId);
+  };
+
+  // Get edited or original value
+  const getProductValue = (
+    productId: string,
+    field: string,
+    originalValue: any
+  ) => {
+    if (
+      editedProducts[productId] &&
+      editedProducts[productId][field as keyof Product] !== undefined
+    ) {
+      return editedProducts[productId][field as keyof Product];
+    }
+    return originalValue;
   };
 
   return (
@@ -201,7 +260,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                     {renderSortIndicator("retailPrice")}
                   </div>
                 </th>
-                <th className="px-6 py-4">Note</th>
+                <th className="px-6 py-4 min-w-[200px] text-center">Note</th>
                 <th
                   className="px-6 py-4 cursor-pointer whitespace-nowrap"
                   onClick={() => handleSortClick("createdAt")}
@@ -211,7 +270,6 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                     {renderSortIndicator("createdAt")}
                   </div>
                 </th>
-                {isEditMode && <th className="px-4 py-4">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -219,7 +277,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                 products.map((product, index) => {
                   const totalQuantity = getTotalProductQuantity(product);
                   const isSelected = selectedProductIds.includes(product.id);
-                  const isEditing = editedRows[product.id] || false;
+                  const isEditable = isProductEditable(product.id);
 
                   // Calculate profit margins
                   const wholesaleMargin =
@@ -230,6 +288,38 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                     ((product.retailPriceUSD - product.wholesalePrice) /
                       product.retailPriceUSD) *
                     100;
+
+                  // Get edited values or original values
+                  const productName = getProductValue(
+                    product.id,
+                    "name",
+                    product.name
+                  );
+                  const productCategory = getProductValue(
+                    product.id,
+                    "category",
+                    product.category
+                  );
+                  const productCostPrice = getProductValue(
+                    product.id,
+                    "costPrice",
+                    product.costPrice
+                  );
+                  const productWholesalePrice = getProductValue(
+                    product.id,
+                    "wholesalePrice",
+                    product.wholesalePrice
+                  );
+                  const productRetailPrice = getProductValue(
+                    product.id,
+                    "retailPrice",
+                    product.retailPrice
+                  );
+                  const productNote = getProductValue(
+                    product.id,
+                    "note",
+                    product.note || ""
+                  );
 
                   return (
                     <tr
@@ -264,14 +354,28 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                         </Avatar>
                       </td>
                       <td className="px-6 py-4">
-                        {isEditMode && isEditing ? (
+                        {isEditable ? (
                           <div className="space-y-1">
                             <Input
-                              defaultValue={product.name}
+                              value={productName}
+                              onChange={(e) =>
+                                handleInputChange(
+                                  product.id,
+                                  "name",
+                                  e.target.value
+                                )
+                              }
                               className="px-2 py-1 h-8"
                             />
                             <Input
-                              defaultValue={product.category}
+                              value={productCategory}
+                              onChange={(e) =>
+                                handleInputChange(
+                                  product.id,
+                                  "category",
+                                  e.target.value
+                                )
+                              }
                               className="px-2 py-1 h-8 text-sm text-gray-500"
                             />
                           </div>
@@ -281,22 +385,15 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                             className="cursor-pointer"
                           >
                             <div className="text-gray-900 font-medium">
-                              {product.name}
+                              {productName}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {product.category}
+                              {productCategory}
                             </div>
                           </div>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {/* {isEditMode && isEditing ? (
-                          <Input
-                            type="number"
-                            defaultValue={totalQuantity}
-                            className="px-2 py-1 h-8 w-20"
-                          />
-                        ) : ( */}
                         <div>
                           <div className="text-gray-900">{totalQuantity}</div>
                           <div
@@ -306,34 +403,49 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                             Locations ({product.locations.length})
                           </div>
                         </div>
-                        {/* )} */}
                       </td>
                       <td className="px-6 py-4">
-                        {isEditMode && isEditing ? (
+                        {isEditable ? (
                           <Input
                             type="number"
                             step="0.01"
-                            defaultValue={product.costPrice}
+                            value={productCostPrice}
+                            onChange={(e) =>
+                              handleInputChange(
+                                product.id,
+                                "costPrice",
+                                e.target.value,
+                                "number"
+                              )
+                            }
                             className="px-2 py-1 h-8 w-24"
                           />
                         ) : (
                           <div className="text-gray-900">
-                            $ {product.costPrice.toFixed(2)}
+                            $ {productCostPrice.toFixed(2)}
                           </div>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {isEditMode && isEditing ? (
+                        {isEditable ? (
                           <Input
                             type="number"
                             step="0.01"
-                            defaultValue={product.wholesalePrice}
+                            value={productWholesalePrice}
+                            onChange={(e) =>
+                              handleInputChange(
+                                product.id,
+                                "wholesalePrice",
+                                e.target.value,
+                                "number"
+                              )
+                            }
                             className="px-2 py-1 h-8 w-24"
                           />
                         ) : (
                           <div>
                             <div className="text-gray-900">
-                              $ {product.wholesalePrice.toFixed(2)}
+                              $ {productWholesalePrice.toFixed(2)}
                             </div>
                             <div className="text-sm text-gray-500">
                               Profit: {wholesaleMargin.toFixed(1)}%
@@ -342,17 +454,25 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {isEditMode && isEditing ? (
+                        {isEditable ? (
                           <Input
                             type="number"
                             step="0.01"
-                            defaultValue={product.retailPrice}
+                            value={productRetailPrice}
+                            onChange={(e) =>
+                              handleInputChange(
+                                product.id,
+                                "retailPrice",
+                                e.target.value,
+                                "number"
+                              )
+                            }
                             className="px-2 py-1 h-8 w-24"
                           />
                         ) : (
                           <div>
                             <div className="text-gray-900">
-                              K {product.retailPrice.toFixed(2)}
+                              K {productRetailPrice.toFixed(2)}
                             </div>
                             <div className="text-sm text-gray-500">
                               $ {product.retailPriceUSD.toFixed(2)} |{" "}
@@ -362,74 +482,44 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                         )}
                       </td>
                       <td className="px-6 py-4 max-w-xs overflow-hidden text-ellipsis">
-                        {isEditMode && isEditing ? (
+                        {isEditable ? (
                           <Input
-                            defaultValue={product.note || ""}
+                            value={productNote}
+                            onChange={(e) =>
+                              handleInputChange(
+                                product.id,
+                                "note",
+                                e.target.value
+                              )
+                            }
                             className="px-2 py-1 h-8"
                           />
                         ) : (
                           <div className="text-gray-900">
-                            {product.note || "-"}
+                            {productNote || "-"}
                           </div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-900">
-                          {new Date(product.createdAt).toLocaleDateString()}
+                          {(() => {
+                            const date = new Date(product.createdAt);
+                            const day = date.getDate();
+                            const month = date.toLocaleString("en-US", {
+                              month: "short",
+                            });
+                            const year = date.getFullYear();
+                            return `${day} ${month}, ${year}`;
+                          })()}
                         </div>
                       </td>
-                      {isEditMode && (
-                        <td className="px-4 py-4">
-                          {isEditing ? (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => {
-                                // Toggle editing status for this row
-                                setEditedRows((prev) => ({
-                                  ...prev,
-                                  [product.id]: false,
-                                }));
-
-                                // Call the save function
-                                if (onSaveEdit) onSaveEdit();
-                              }}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    className="p-2 hover:bg-gray-100"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      // Toggle editing status for this row
-                                      setEditedRows((prev) => ({
-                                        ...prev,
-                                        [product.id]: true,
-                                      }));
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </td>
-                      )}
                     </tr>
                   );
                 })
               ) : (
                 <tr>
                   <td
-                    colSpan={isEditMode ? 10 : 9}
+                    colSpan={9}
                     className="px-6 py-10 text-center text-gray-500"
                   >
                     No products found matching your criteria

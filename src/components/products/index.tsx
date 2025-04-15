@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Plus, Edit, Check } from "lucide-react";
+import { Plus, Edit, Check, Save } from "lucide-react";
 import ProductsTable from "@/components/products/ProductsTable";
 import ProductFilters from "@/components/products/ProductFilters";
 import AddProductForm from "@/components/products/AddProductForm";
@@ -52,6 +52,13 @@ const ProductsPage = () => {
   const [similarNameWarning, setSimilarNameWarning] = useState<string | null>(
     null
   );
+
+  // Selected products for batch editing
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  // Store edited values for selected products
+  const [editedProducts, setEditedProducts] = useState<
+    Record<string, Partial<Product>>
+  >({});
 
   // Sorting
   const [sortColumn, setSortColumn] = useState<string>("createdAt");
@@ -276,28 +283,60 @@ const ProductsPage = () => {
     setAddProductOpen(true);
   };
 
-  // Handle inline edit mode toggle
+  // Handle selected products from table
+  const handleSelectedProductsChange = (selectedIds: string[]) => {
+    setSelectedProductIds(selectedIds);
+  };
+
+  // Handle product field change during batch edit
+  const handleProductFieldChange = (
+    productId: string,
+    field: string,
+    value: any
+  ) => {
+    setEditedProducts((prev) => ({
+      ...prev,
+      [productId]: {
+        ...(prev[productId] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  // Handle toggle edit mode
   const handleToggleEditMode = () => {
+    if (isEditMode) {
+      // Save changes
+      if (Object.keys(editedProducts).length > 0) {
+        // Apply edits to products
+        const updatedProducts = products.map((product) => {
+          if (editedProducts[product.id]) {
+            return {
+              ...product,
+              ...editedProducts[product.id],
+            };
+          }
+          return product;
+        });
+
+        setProducts(updatedProducts);
+        showToast(
+          `Changes saved for ${Object.keys(editedProducts).length} products`,
+          "success"
+        );
+
+        // Reset edited products
+        setEditedProducts({});
+      }
+    } else {
+      // Only allow edit mode if products are selected
+      if (selectedProductIds.length === 0) {
+        showToast("Please select at least one product to edit", "error");
+        return;
+      }
+    }
+
     setIsEditMode((prev) => !prev);
-  };
-
-  // Handle save after inline edit
-  const handleSaveEdit = () => {
-    showToast("Changes saved successfully", "success");
-    setIsEditMode(false);
-  };
-
-  // Handle transfer, stock adjust, incoming items
-  const handleTransfer = (product: Product, locationId: string) => {
-    showToast(`Transfer functionality will be implemented soon`, "info");
-  };
-
-  const handleStockAdjust = (product: Product, locationId: string) => {
-    showToast(`Stock adjust functionality will be implemented soon`, "info");
-  };
-
-  const handleIncomingItems = (product: Product, locationId: string) => {
-    showToast(`Incoming items functionality will be implemented soon`, "info");
   };
 
   // Check for similar product names
@@ -498,10 +537,11 @@ const ProductsPage = () => {
                 isEditMode ? "bg-blue-50 text-blue-600 border-blue-200" : ""
               }
               onClick={handleToggleEditMode}
+              disabled={!isEditMode && selectedProductIds.length === 0}
             >
               {isEditMode ? (
                 <>
-                  <Check className="mr-2 h-4 w-4" /> Done Editing
+                  <Save className="mr-2 h-4 w-4" /> Save Changes
                 </>
               ) : (
                 <>
@@ -535,7 +575,10 @@ const ProductsPage = () => {
           sortColumn={sortColumn}
           sortDirection={sortDirection}
           isEditMode={isEditMode}
-          onSaveEdit={handleSaveEdit}
+          selectedProductIds={selectedProductIds}
+          onSelectedProductsChange={handleSelectedProductsChange}
+          onProductFieldChange={handleProductFieldChange}
+          editedProducts={editedProducts}
         />
 
         {/* Add/Edit Product Modal */}
@@ -573,9 +616,9 @@ const ProductsPage = () => {
             open={detailModalOpen}
             onOpenChange={setDetailModalOpen}
             onEdit={handleEditProduct}
-            onTransfer={handleTransfer}
-            onStockAdjust={handleStockAdjust}
-            onIncomingItems={handleIncomingItems}
+            onTransfer={() => {}}
+            onStockAdjust={() => {}}
+            onIncomingItems={() => {}}
           />
         )}
 
