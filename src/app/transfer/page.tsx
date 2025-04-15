@@ -1,6 +1,6 @@
-"use client"
+"use client";
 import React from "react";
-import TransferModule from "@/components/transfer";
+import { TransferModule } from "@/components/transfer";
 
 const TransferIndex = () => {
   return (

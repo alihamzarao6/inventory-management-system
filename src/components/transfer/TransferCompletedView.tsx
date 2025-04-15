@@ -10,9 +10,14 @@ import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import DeliveryNoteModal from "./DeliveryNoteModal";
 import InvoiceOptionsModal from "./InvoiceOptionsModal";
 import { TransferFormData } from "@/types/transfers";
+import { cn } from "@/utils";
 
 interface TransferCompletedViewProps {
-  transfer: TransferFormData & { id?: string };
+  transfer: TransferFormData & {
+    id?: string;
+    isCustomerSource?: boolean;
+    isCustomerDestination?: boolean;
+  };
   onBackToTransfers: () => void;
 }
 
@@ -29,6 +34,11 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
   const getSourceLocationNames = () => {
     return transfer.sourceLocationIds
       .map((id) => {
+        // Check if it's a customer
+        if (id.startsWith("cust-")) {
+          return "Customer"; // This would be replaced with actual customer name in real app
+        }
+
         const mainLocation = MOCK_LOCATIONS.find((loc) => loc.id === id);
         if (mainLocation) return mainLocation.name;
 
@@ -48,6 +58,11 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
   };
 
   const getDestinationLocationName = () => {
+    // Check if it's a customer
+    if (transfer.destinationLocationId.startsWith("cust-")) {
+      return "Customer"; // This would be replaced with actual customer name in real app
+    }
+
     const mainLocation = MOCK_LOCATIONS.find(
       (loc) => loc.id === transfer.destinationLocationId
     );
@@ -80,7 +95,7 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
     const day = String(now.getDate()).padStart(2, "0");
     const month = now.toLocaleString("default", { month: "short" });
     const year = now.getFullYear();
-    return `${day}.${month}.${year}`;
+    return `${day} ${month}, ${year}`;
   };
 
   // Mock transfer history data - would come from API in real app
@@ -90,17 +105,24 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
       action: "Transfer Created",
       user: "John Doe",
       timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-      details: "Transfer initiated with 5 items",
+      details: "Transfer initiated with locations selected",
     },
     {
       id: "log-2",
-      action: "Items Added",
+      action: "Items Selected",
       user: "John Doe",
-      timestamp: new Date(Date.now() - 3500000).toISOString(), // 58 min ago
-      details: "Added 5 items to transfer",
+      timestamp: new Date(Date.now() - 3000000).toISOString(), // 50 min ago
+      details: `Selected ${transfer.items.length} items for transfer`,
     },
     {
       id: "log-3",
+      action: "Quantities Set",
+      user: "John Doe",
+      timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
+      details: "Set transfer quantities for selected items",
+    },
+    {
+      id: "log-4",
       action: "Transfer Completed",
       user: "John Doe",
       timestamp: new Date().toISOString(), // now
@@ -111,24 +133,18 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
   return (
     <div className="p-4 min-h-screen">
       <div className="max-w-[1200px] mx-auto">
-        <div className="flex items-center mb-6 gap-4">
-          <Button
-            // variant="outline"
-            onClick={onBackToTransfers}
-            className="gap-2"
-          >
+        {/* <div className="flex items-center mb-6 gap-4">
+          <Button onClick={onBackToTransfers} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Back to Transfer
           </Button>
-
-          <div className="bg-gray-100 h-8 w-px mx-2"></div>
-
-          <h1 className="text-2xl font-semibold">Transfer Details</h1>
-        </div>
+        </div> */}
 
         <Card className="p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
+              <h1 className="text-2xl font-semibold">Transfer Details</h1>
+
               <h2 className="text-xl font-bold text-green-500 mb-1">
                 Transfer #{transfer.id || "New"}
               </h2>
@@ -177,11 +193,32 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
             value={activeTab}
             onValueChange={setActiveTab}
           >
-            <TabsList className="mb-4">
-              <TabsTrigger value="items">Items</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-            </TabsList>
-
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant={activeTab === "items" ? "default" : "outline"}
+                onClick={() => setActiveTab("items")}
+                className={cn(
+                  "px-6 py-2 rounded-lg",
+                  activeTab === "items"
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                Items
+              </Button>
+              <Button
+                variant={activeTab === "history" ? "default" : "outline"}
+                onClick={() => setActiveTab("history")}
+                className={cn(
+                  "px-6 py-2 rounded-lg",
+                  activeTab === "history"
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                History
+              </Button>
+            </div>
             <TabsContent value="items" className="space-y-4">
               <div className="relative max-w-md mb-6">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -323,7 +360,16 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
                       <div className="text-right">
                         <p className="text-sm font-medium">{event.user}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(event.timestamp).toLocaleString()}
+                          {new Date(event.timestamp).toLocaleDateString(
+                            "en-US",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </p>
                       </div>
                     </div>
@@ -351,6 +397,7 @@ const TransferCompletedView: React.FC<TransferCompletedViewProps> = ({
         transfer={transfer}
         sourceLocationName={getSourceLocationNames()}
         destinationLocationName={getDestinationLocationName()}
+        isCustomerDestination={transfer.isCustomerDestination}
       />
     </div>
   );
