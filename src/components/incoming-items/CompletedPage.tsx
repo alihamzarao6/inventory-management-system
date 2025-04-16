@@ -270,6 +270,14 @@ export const CompletedPage = () => {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            onClick={() => router.push("/incoming-items/history")}
+            className="flex items-center gap-2 bg-white"
+          >
+            <Share className="h-4 w-4" />
+            View History
+          </Button>
+          <Button
+            variant="outline"
             onClick={handlePrint}
             className="flex items-center gap-2 bg-white"
           >
@@ -293,10 +301,32 @@ export const CompletedPage = () => {
         onValueChange={setActiveTab}
         className="mb-6"
       >
-        <TabsList>
-          <TabsTrigger value="items">Items</TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center gap-2 mb-4">
+          <Button
+            variant={activeTab === "items" ? "default" : "outline"}
+            onClick={() => setActiveTab("items")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "items"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            Items
+          </Button>
+          <Button
+            variant={activeTab === "details" ? "default" : "outline"}
+            onClick={() => setActiveTab("details")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "details"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            Details
+          </Button>
+        </div>
 
         <TabsContent value="items">
           {/* Search Bar */}
