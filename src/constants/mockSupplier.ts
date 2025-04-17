@@ -1,0 +1,92 @@
+export const MOCK_SUPPLIERS = [
+  {
+    id: "sup-1",
+    name: "ABC Suppliers Ltd.",
+    contact: "+260 96 555 1234",
+    email: "info@abcsuppliers.co.zm",
+  },
+  {
+    id: "sup-2",
+    name: "XYZ Distributors",
+    contact: "+260 97 765 4321",
+    email: "sales@xyzdist.com",
+  },
+  {
+    id: "sup-3",
+    name: "Global Trade Partners",
+    contact: "+260 95 443 2211",
+    email: "contact@gtp.com",
+  },
+  {
+    id: "sup-4",
+    name: "Quality Imports Ltd",
+    contact: "+260 76 123 4567",
+    email: "support@qualityimports.net",
+  },
+  {
+    id: "sup-5",
+    name: "Prime Vendors Inc",
+    contact: "+260 76 987 6543",
+    email: "orders@primevendors.com",
+  },
+  {
+    id: "sup-6",
+    name: "Copperbelt Distributors",
+    contact: "+260 96 332 6677",
+    email: "sales@copperbeltdist.co.zm",
+  },
+  {
+    id: "sup-7",
+    name: "Zambian Commercial Supply",
+    contact: "+260 97 889 0011",
+    email: "info@zcs.co.zm",
+  },
+  {
+    id: "sup-8",
+    name: "African Import Solutions",
+    contact: "+260 95 225 8899",
+    email: "contact@africanimport.com",
+  },
+  {
+    id: "sup-9",
+    name: "Lusaka Trading Company",
+    contact: "+260 76 442 1133",
+    email: "support@lusakatrading.co.zm",
+  },
+  {
+    id: "sup-10",
+    name: "Southern Province Suppliers",
+    contact: "+260 97 336 7788",
+    email: "info@southernsuppliers.com",
+  },
+  {
+    id: "sup-11",
+    name: "Kitwe Industrial Products",
+    contact: "+260 96 112 3344",
+    email: "sales@kip.co.zm",
+  },
+  {
+    id: "sup-12",
+    name: "Ndola Business Supplies",
+    contact: "+260 95 667 8899",
+    email: "orders@ndolasupplies.com",
+  },
+  {
+    id: "sup-13",
+    name: "Eastern Trade Network",
+    contact: "+260 76 554 4332",
+    email: "contact@etn.co.zm",
+  },
+  {
+    id: "sup-14",
+    name: "Northern Region Distributors",
+    contact: "+260 97 221 5566",
+    email: "sales@northerndist.com",
+  },
+  {
+    id: "sup-15",
+    name: "Kabwe Commercial Solutions",
+    contact: "+260 96 889 3344",
+    email: "info@kabwesolutions.co.zm",
+  },
+];
