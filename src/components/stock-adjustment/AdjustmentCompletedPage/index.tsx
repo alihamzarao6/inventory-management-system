@@ -206,7 +206,7 @@ export const CompletedPage = () => {
   };
 
   const handleBack = () => {
-    router.push("/stock-adjustment/history");
+    router.push("/stock-adjustment");
   };
 
   const sortedAndFilteredItems = getSortedAndFilteredItems();
@@ -238,7 +238,7 @@ export const CompletedPage = () => {
       <div className="mb-4">
         <Button variant="ghost" className="mb-4" onClick={handleBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to History
+          Back to Stock Adjustment
         </Button>
       </div>
 
@@ -255,6 +255,14 @@ export const CompletedPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/stock-adjustment/history")}
+            className="flex items-center gap-2 bg-white"
+          >
+            <Share className="h-4 w-4" />
+            View History
+          </Button>
           <Button
             variant="outline"
             onClick={handlePrint}

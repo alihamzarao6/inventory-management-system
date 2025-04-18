@@ -424,12 +424,68 @@ const HistoryPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="all" onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="rejected">Denied</TabsTrigger>
-        </TabsList>
+        <div className="mb-6 flex items-center gap-2">
+          <Button
+            variant={activeTab === "all" ? "default" : "outline"}
+            onClick={() => setActiveTab("all")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "all"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            All
+          </Button>
+          <Button
+            variant={activeTab === "approved" ? "default" : "outline"}
+            onClick={() => setActiveTab("approved")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "approved"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            Approved
+          </Button>
+          <Button
+            variant={activeTab === "pending" ? "default" : "outline"}
+            onClick={() => setActiveTab("pending")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "pending"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            Pending
+          </Button>
+          <Button
+            variant={activeTab === "rejected" ? "default" : "outline"}
+            onClick={() => setActiveTab("rejected")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "rejected"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            Denied
+          </Button>
+          <Button
+            variant={activeTab === "items" ? "default" : "outline"}
+            onClick={() => setActiveTab("items")}
+            className={cn(
+              "px-6 py-2 rounded-lg",
+              activeTab === "items"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            Items
+          </Button>
+        </div>
 
         <TabsContent value="all" className="mt-0">
           {renderAdjustmentsTable()}

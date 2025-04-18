@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Minus, Upload, Check, X } from "lucide-react";
 import {
@@ -45,7 +45,7 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
   const [proof, setProof] = useState<string | null>(null);
   const [proofName, setProofName] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form when item changes
@@ -70,24 +70,30 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      
+
       // Validate file is an image
-      if (!file.type.match('image.*')) {
-        setErrors(prev => ({ ...prev, proof: "Please upload an image file" }));
+      if (!file.type.match("image.*")) {
+        setErrors((prev) => ({
+          ...prev,
+          proof: "Please upload an image file",
+        }));
         return;
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, proof: "Image size should be less than 5MB" }));
+        setErrors((prev) => ({
+          ...prev,
+          proof: "Image size should be less than 5MB",
+        }));
         return;
       }
-      
+
       setProofName(file.name);
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (e.target && typeof e.target.result === 'string') {
+        if (e.target && typeof e.target.result === "string") {
           setProof(e.target.result);
         }
       };
@@ -104,28 +110,53 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
     }
   };
 
-  // Handle adjustment buttons
-  const handleIncrementQuantity = () => {
-    setQuantity(prev => prev + 1);
-    if (quantity === 0) {
-      setAdjustmentType("Add");
-    }
+  // Set adjustment type to Add
+  const handleSelectAdd = () => {
+    setAdjustmentType("Add");
+    // Clear quantity when switching modes
+    setQuantity(0);
   };
 
-  const handleDecrementQuantity = () => {
-    if (quantity > 0) {
-      setQuantity(prev => prev - 1);
-    } else {
-      setAdjustmentType("Remove");
-      setQuantity(prev => prev + 1);
+  // Set adjustment type to Remove
+  const handleSelectRemove = () => {
+    setAdjustmentType("Remove");
+    // Clear quantity when switching modes
+    setQuantity(0);
+  };
+
+  // Handle quantity input change
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 0) {
+      // For Remove, ensure quantity doesn't exceed previous quantity
+      if (
+        adjustmentType === "Remove" &&
+        item &&
+        value > item.previousQuantity
+      ) {
+        setErrors({
+          quantity: `Cannot remove more than the current quantity (${item.previousQuantity})`,
+        });
+        setQuantity(item.previousQuantity);
+      } else {
+        setQuantity(value);
+        // Clear error if it exists
+        if (errors.quantity) {
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.quantity;
+            return newErrors;
+          });
+        }
+      }
     }
   };
 
   // Calculate new quantity
   const calculateNewQuantity = () => {
     if (!item) return 0;
-    return adjustmentType === "Add" 
-      ? item.previousQuantity + quantity 
+    return adjustmentType === "Add"
+      ? item.previousQuantity + quantity
       : item.previousQuantity - quantity;
   };
 
@@ -133,29 +164,33 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
   const handleSubmit = () => {
     // Validate form
     const newErrors: Record<string, string> = {};
-    
+
     if (quantity === 0) {
       newErrors.quantity = "Adjustment quantity must be greater than 0";
     }
-    
+
     if (!reasonId) {
       newErrors.reason = "Please select a reason for adjustment";
     }
-    
+
     if (reasonId === "reason-4" && !customReason.trim()) {
       newErrors.customReason = "Please provide a custom reason";
     }
-    
+
     // If new quantity would be negative, show error
-    if (adjustmentType === "Remove" && quantity > (item?.previousQuantity || 0)) {
+    if (
+      adjustmentType === "Remove" &&
+      item &&
+      quantity > item.previousQuantity
+    ) {
       newErrors.quantity = "Adjustment would result in negative quantity";
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     // Create updated item
     if (item) {
       const updatedItem: StockAdjustmentItem = {
@@ -167,7 +202,7 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
         customReason: reasonId === "reason-4" ? customReason : undefined,
         proof: proof || undefined,
       };
-      
+
       onSave(updatedItem);
     }
   };
@@ -190,15 +225,14 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
                   alt={item.productName}
                   className="object-cover"
                 />
-                <AvatarFallback>
-                  {item.productName.charAt(0)}
-                </AvatarFallback>
+                <AvatarFallback>{item.productName.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
                 <div className="text-lg font-medium">{item.productName}</div>
                 <div className="text-sm text-gray-500">{item.category}</div>
                 <div className="text-sm mt-1">
-                  Current Quantity: <span className="font-medium">{item.previousQuantity}</span>
+                  Current Quantity:{" "}
+                  <span className="font-medium">{item.previousQuantity}</span>
                 </div>
               </div>
             </div>
@@ -206,64 +240,72 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
         )}
 
         <div className="p-6 space-y-6">
-          {/* Adjustment Controls */}
+          {/* Adjustment Type Selection */}
           <div className="space-y-2">
-            <Label htmlFor="adjustment" className="text-gray-700">
-              Adjustment
+            <Label htmlFor="adjustment-type" className="text-gray-700">
+              Adjustment Type
             </Label>
-            <div className="flex items-center space-x-2">
+            <div className="flex space-x-2">
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
+                variant={adjustmentType === "Add" ? "default" : "outline"}
                 className={cn(
-                  "h-10 w-10 rounded-l-md border-gray-200",
-                  adjustmentType === "Remove" && quantity > 0 && "bg-red-100 text-red-600 border-red-200"
+                  "flex-1",
+                  adjustmentType === "Add" && "bg-green-500 hover:bg-green-600"
                 )}
-                onClick={handleDecrementQuantity}
+                onClick={handleSelectAdd}
               >
-                <Minus className="h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4" />
+                Add
               </Button>
-              <Input
-                id="adjustment"
-                type="number"
-                min="0"
-                value={quantity}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (!isNaN(val) && val >= 0) {
-                    setQuantity(val);
-                  }
-                }}
-                className={cn(
-                  "text-center h-10 border-gray-200 rounded-none",
-                  errors.quantity && "border-red-500 focus:border-red-500 focus:ring-red-500"
-                )}
-              />
               <Button
                 type="button"
-                variant="outline"
-                size="icon"
+                variant={adjustmentType === "Remove" ? "default" : "outline"}
                 className={cn(
-                  "h-10 w-10 rounded-r-md border-gray-200",
-                  adjustmentType === "Add" && quantity > 0 && "bg-green-100 text-green-600 border-green-200"
+                  "flex-1",
+                  adjustmentType === "Remove" && "bg-red-500 hover:bg-red-600"
                 )}
-                onClick={handleIncrementQuantity}
+                onClick={handleSelectRemove}
               >
-                <Plus className="h-4 w-4" />
+                <Minus className="mr-2 h-4 w-4" />
+                Remove
               </Button>
             </div>
+          </div>
+
+          {/* Quantity Input */}
+          <div className="space-y-2">
+            <Label htmlFor="quantity" className="text-gray-700">
+              Quantity to {adjustmentType === "Add" ? "Add" : "Remove"}
+            </Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="0"
+              max={
+                adjustmentType === "Remove" && item
+                  ? item.previousQuantity
+                  : undefined
+              }
+              value={quantity}
+              onChange={handleQuantityChange}
+              className={cn(
+                "text-center h-10 border-gray-200",
+                errors.quantity &&
+                  "border-red-500 focus:border-red-500 focus:ring-red-500",
+                adjustmentType === "Add" ? "bg-green-50" : "bg-red-50"
+              )}
+            />
             {errors.quantity && (
               <p className="text-sm text-red-500 mt-1">{errors.quantity}</p>
             )}
-            
+
             <div className="text-sm text-gray-500 mt-2">
-              {quantity > 0 && (
+              {quantity > 0 && item && (
                 <div>
-                  {adjustmentType === "Add" 
+                  {adjustmentType === "Add"
                     ? `Adding ${quantity} items. New quantity will be ${calculateNewQuantity()}.`
-                    : `Removing ${quantity} items. New quantity will be ${calculateNewQuantity()}.`
-                  }
+                    : `Removing ${quantity} items. New quantity will be ${calculateNewQuantity()}.`}
                 </div>
               )}
             </div>
@@ -274,15 +316,13 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
             <Label htmlFor="reason" className="text-gray-700">
               Reason
             </Label>
-            <Select 
-              value={reasonId} 
-              onValueChange={setReasonId}
-            >
+            <Select value={reasonId} onValueChange={setReasonId}>
               <SelectTrigger
                 id="reason"
                 className={cn(
                   "border-gray-200",
-                  errors.reason && "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  errors.reason &&
+                    "border-red-500 focus:border-red-500 focus:ring-red-500"
                 )}
               >
                 <SelectValue placeholder="Select reason" />
@@ -313,12 +353,15 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
                 onChange={(e) => setCustomReason(e.target.value)}
                 className={cn(
                   "resize-none border-gray-200",
-                  errors.customReason && "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  errors.customReason &&
+                    "border-red-500 focus:border-red-500 focus:ring-red-500"
                 )}
                 rows={3}
               />
               {errors.customReason && (
-                <p className="text-sm text-red-500 mt-1">{errors.customReason}</p>
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.customReason}
+                </p>
               )}
             </div>
           )}
@@ -329,7 +372,7 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
               Upload Proof (Optional)
             </Label>
             {!proof ? (
-              <div 
+              <div
                 className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -377,17 +420,20 @@ const AdjustmentFormModal: React.FC<AdjustmentFormModalProps> = ({
         </div>
 
         <DialogFooter className="p-4 bg-gray-50 border-t">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
-            className="bg-green-500 hover:bg-green-600 text-white"
+            className={cn(
+              "text-white",
+              adjustmentType === "Add"
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-red-500 hover:bg-red-600"
+            )}
             onClick={handleSubmit}
           >
-            Confirm
+            <Check className="mr-2 h-4 w-4" />
+            Confirm {adjustmentType === "Add" ? "Addition" : "Removal"}
           </Button>
         </DialogFooter>
       </DialogContent>

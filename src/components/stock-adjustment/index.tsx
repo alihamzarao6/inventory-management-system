@@ -8,7 +8,6 @@ import {
   Trash2,
   Search,
   Share,
-  Printer,
   ChevronDown,
   ArrowRight,
   Check,
@@ -23,22 +22,20 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import LocationFilters from "@/components/products/LocationFilters";
-import StockAdjustmentTable from "@/components/stock-adjustment/StockAdjustmentTable";
 import AdjustmentFormModal from "@/components/stock-adjustment/AdjustmentFormModal";
 import AddProductsModal from "@/components/stock-adjustment/AddProductsModal";
-import ProductSelectionModal from "@/components/stock-adjustment/ProductSelectionModal";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 import { Steps, Step } from "@/components/ui/steps";
 import { createHandleExport } from "@/utils/pdfExport";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useToast from "@/hooks/useToast";
 import { StockAdjustmentItem, StockAdjustment } from "@/types/stockAdjustment";
 import { Product } from "@/types/products";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
-import { MOCK_CUSTOMERS } from "@/constants/mockCustomers";
 import { ADJUSTMENT_REASONS } from "@/constants/mockStockAdjustments";
 import { cn } from "@/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const StockAdjustmentPage = () => {
   const router = useRouter();
@@ -47,12 +44,6 @@ const StockAdjustmentPage = () => {
 
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
-  const steps = [
-    { title: "Select Location", description: "Choose location or customer" },
-    { title: "Select Products", description: "Choose products to adjust" },
-    { title: "Set Adjustments", description: "Set adjustment details" },
-    { title: "Complete", description: "Review and complete" },
-  ];
 
   // State management
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
@@ -67,8 +58,6 @@ const StockAdjustmentPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Modals
-  const [productSelectionModalOpen, setProductSelectionModalOpen] =
-    useState(false);
   const [addProductsModalOpen, setAddProductsModalOpen] = useState(false);
   const [adjustmentFormOpen, setAdjustmentFormOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -89,11 +78,6 @@ const StockAdjustmentPage = () => {
 
     if (selectedLocationIds.length === 1) {
       const locationId = selectedLocationIds[0];
-      // Check if it's a customer
-      const customer = MOCK_CUSTOMERS.find((c) => c.id === locationId);
-      if (customer) {
-        return `Customer: ${customer.name}`;
-      }
 
       // Check if it's a main location
       const location = MOCK_LOCATIONS.find((loc) => loc.id === locationId);
@@ -117,10 +101,6 @@ const StockAdjustmentPage = () => {
   const getLocationNames = () => {
     return selectedLocationIds
       .map((id) => {
-        // Check if it's a customer
-        const customer = MOCK_CUSTOMERS.find((cust) => cust.id === id);
-        if (customer) return `${customer.name} (Customer)`;
-
         // Check if it's a main location
         const mainLocation = MOCK_LOCATIONS.find((loc) => loc.id === id);
         if (mainLocation) return mainLocation.name;
@@ -155,12 +135,7 @@ const StockAdjustmentPage = () => {
     // Simulate API call
     setTimeout(() => {
       let locationProducts: Product[] = [];
-      const customerIds = selectedLocationIds.filter((id) =>
-        MOCK_CUSTOMERS.some((cust) => cust.id === id)
-      );
-      const locationIds = selectedLocationIds.filter(
-        (id) => !MOCK_CUSTOMERS.some((cust) => cust.id === id)
-      );
+      const locationIds = selectedLocationIds;
 
       // First handle regular locations
       locationIds.forEach((locationId) => {
@@ -200,13 +175,6 @@ const StockAdjustmentPage = () => {
         }
       });
 
-      // Then handle customers (in a real app, this would be products associated with customers)
-      if (customerIds.length > 0) {
-        // For demo purposes, just show some random products for customers
-        const customerProducts = MOCK_PRODUCTS.slice(0, 5); // First 5 products
-        locationProducts = [...locationProducts, ...customerProducts];
-      }
-
       // Remove duplicates by ID
       locationProducts = locationProducts.filter(
         (product, index, self) =>
@@ -219,7 +187,7 @@ const StockAdjustmentPage = () => {
           // Calculate current quantity for this product at all selected locations
           let currentQuantity = 0;
 
-          // Get quantity from all selected locations (excluding customers)
+          // Get quantity from all selected locations
           locationIds.forEach((locationId) => {
             if (locationId.startsWith("sub-")) {
               // For sub-location, get quantity specific to this sub-location
@@ -276,26 +244,47 @@ const StockAdjustmentPage = () => {
 
   // Filter items by search term
   const getFilteredItems = () => {
-    if (!searchTerm.trim()) {
-      return selectedItems.filter((item) =>
+    // For step 4 (Review), only show items that were selected in previous steps
+    if (currentStep === 4) {
+      let items = selectedItems.filter((item) =>
         checkedItemIds.includes(item.productId)
       );
+
+      // Apply search filter if needed
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        items = items.filter(
+          (item) =>
+            item.productName.toLowerCase().includes(term) ||
+            item.category.toLowerCase().includes(term)
+        );
+      }
+
+      return items;
+    }
+
+    // For other steps
+    const shownItems =
+      currentStep === 2
+        ? selectedItems // Show all items in step 2
+        : selectedItems.filter((item) =>
+            checkedItemIds.includes(item.productId)
+          ); // Show only checked items in step 3
+
+    if (!searchTerm.trim()) {
+      return shownItems;
     }
 
     const term = searchTerm.toLowerCase();
-    return selectedItems.filter(
+    return shownItems.filter(
       (item) =>
-        checkedItemIds.includes(item.productId) &&
-        (item.productName.toLowerCase().includes(term) ||
-          item.category.toLowerCase().includes(term))
+        item.productName.toLowerCase().includes(term) ||
+        item.category.toLowerCase().includes(term)
     );
   };
 
   // Handle location selection
-  const handleLocationSelect = (
-    locationIds: string[],
-    isCustomer?: boolean
-  ) => {
+  const handleLocationSelect = (locationIds: string[]) => {
     setSelectedLocationIds(locationIds);
   };
 
@@ -308,7 +297,40 @@ const StockAdjustmentPage = () => {
     );
   };
 
-  // Open add products modal
+  // Toggle selection for all visible products
+  const toggleSelectAll = () => {
+    const displayedItems = getFilteredItems();
+
+    if (displayedItems.length === 0) return;
+
+    // Check if all currently displayed items are selected
+    const allDisplayedSelected = displayedItems.every((item) =>
+      checkedItemIds.includes(item.productId)
+    );
+
+    if (allDisplayedSelected) {
+      // Unselect all displayed items
+      setCheckedItemIds((prev) =>
+        prev.filter(
+          (id) => !displayedItems.some((item) => item.productId === id)
+        )
+      );
+    } else {
+      // Select all displayed items
+      const displayedIds = displayedItems.map((item) => item.productId);
+      setCheckedItemIds((prev) => {
+        // Keep items that are already selected but not currently displayed
+        const remainingSelected = prev.filter(
+          (id) => !displayedItems.some((item) => item.productId === id)
+        );
+
+        // Add all displayed items
+        return [...remainingSelected, ...displayedIds];
+      });
+    }
+  };
+
+  // Open add products modal for adding additional products
   const handleAddProducts = () => {
     if (selectedLocationIds.length === 0) {
       showToast("Please select at least one location first", "error");
@@ -321,19 +343,6 @@ const StockAdjustmentPage = () => {
     }
 
     setAddProductsModalOpen(true);
-  };
-
-  // Handle product selection from the modal
-  const handleProductsSelectionModal = (
-    selectedItems: StockAdjustmentItem[]
-  ) => {
-    setSelectedItems(selectedItems);
-    // Check all items by default
-    setCheckedItemIds(selectedItems.map((item) => item.productId));
-    setProductSelectionModalOpen(false);
-
-    // Move to step 2 now that we have items selected
-    setCurrentStep(2);
   };
 
   // Handle selection changes from add products modal
@@ -456,25 +465,10 @@ const StockAdjustmentPage = () => {
 
   // Handle next step
   const handleNextStep = () => {
-    if (currentStep === 1) {
-      // Make sure availableProducts is loaded before opening the modal
-      if (isLoading) {
-        showToast("Loading products, please wait...", "info");
-        return;
-      }
-
-      if (availableProducts.length === 0) {
-        showToast("No products found for the selected location", "warning");
-        return;
-      }
-
-      // Open the product selection modal
-      setProductSelectionModalOpen(true);
-    } else if (currentStep === 2) {
-      setCurrentStep(3);
-    } else if (currentStep === 3) {
-      // Move to step 4 instead of navigating away
-      setCurrentStep(4);
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleCompleteAdjustment();
     }
   };
 
@@ -483,6 +477,14 @@ const StockAdjustmentPage = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  // Format adjustment value with + or - sign
+  const formatAdjustment = (item: StockAdjustmentItem) => {
+    const value =
+      item.adjustmentType === "Add" ? item.quantity : -item.quantity;
+    const color = value > 0 ? "text-green-500" : "text-red-500";
+    return <span className={color}>{value > 0 ? `+${value}` : value}</span>;
   };
 
   const filteredItems = getFilteredItems();
@@ -513,22 +515,10 @@ const StockAdjustmentPage = () => {
       {/* Progress Steps */}
       <div className="mb-6">
         <Steps currentStep={currentStep} className="w-full mb-4">
-          <Step
-            title="Select Location"
-            // description="Choose location or customer"
-          />
-          <Step
-            title="Select Products"
-            // description="Choose products to adjust"
-          />
-          <Step
-            title="Set Adjustments"
-            // description="Set adjustment details"
-          />
-          {/* <Step
-            title="Complete"
-            // description="Review and complete"
-          /> */}
+          <Step title="Select Location" />
+          <Step title="Select Items" />
+          <Step title="Set Adjustments" />
+          <Step title="Review & Complete" />
         </Steps>
       </div>
 
@@ -536,7 +526,7 @@ const StockAdjustmentPage = () => {
       {currentStep === 1 && (
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">
-            Step 1: Select Location or Customer
+            Step 1: Select Location
           </h2>
 
           <div className="max-w-xl">
@@ -564,9 +554,9 @@ const StockAdjustmentPage = () => {
                 <LocationFilters
                   selectedLocationIds={selectedLocationIds}
                   onLocationSelect={handleLocationSelect}
-                  showCustomers={true}
+                  showCustomers={false} // Exclude customers
                   allowMultipleSelection={true}
-                  placeholder="Select locations or customers"
+                  placeholder="Select locations"
                 />
               </PopoverContent>
             </Popover>
@@ -580,8 +570,132 @@ const StockAdjustmentPage = () => {
         </div>
       )}
 
-      {/* Step 2 & 3: Products and Adjustment Details */}
-      {(currentStep === 2 || currentStep === 3) && (
+      {/* Step 2: Product Selection */}
+      {currentStep === 2 && (
+        <>
+          {/* Search and actions */}
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="search"
+                placeholder="Search items..."
+                className="pl-10 h-12 border-gray-300 bg-white"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Products Table */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    <th className="pl-4 py-4 pr-2">
+                      <Checkbox
+                        checked={
+                          filteredItems.length > 0 &&
+                          filteredItems.every((item) =>
+                            checkedItemIds.includes(item.productId)
+                          )
+                        }
+                        onCheckedChange={toggleSelectAll}
+                        className="rounded"
+                      />
+                    </th>
+                    <th className="px-4 py-4">Photo</th>
+                    <th className="px-6 py-4">Item Name</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Current Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-10 text-center text-gray-500"
+                      >
+                        Loading products...
+                      </td>
+                    </tr>
+                  ) : filteredItems.length > 0 ? (
+                    filteredItems.map((item, index) => {
+                      const isSelected = checkedItemIds.includes(
+                        item.productId
+                      );
+                      return (
+                        <tr
+                          key={item.productId}
+                          className={cn(
+                            "transition-colors border-t border-gray-100",
+                            isSelected
+                              ? "bg-blue-50"
+                              : index % 2 === 0
+                              ? "bg-white"
+                              : "bg-gray-50/30",
+                            "hover:bg-gray-50"
+                          )}
+                          onClick={() => toggleItemSelection(item.productId)}
+                        >
+                          <td className="pl-4 py-4 pr-2">
+                            <Checkbox
+                              checked={isSelected}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
+                            <Avatar className="h-12 w-12 rounded-md">
+                              <AvatarImage
+                                src={item.productImage}
+                                alt={item.productName}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                {item.productName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-gray-900 font-medium">
+                              {item.productName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {item.category}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-500">
+                            {item.category}
+                          </td>
+                          <td className="px-6 py-4 text-gray-900">
+                            {item.previousQuantity}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-10 text-center text-gray-500"
+                      >
+                        {searchTerm
+                          ? "No products found matching your search"
+                          : "No products available in these locations"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Step 3: Set Adjustments */}
+      {currentStep === 3 && (
         <>
           {/* Search and actions */}
           <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
@@ -608,31 +722,141 @@ const StockAdjustmentPage = () => {
             </div>
           </div>
 
-          {/* Items Table */}
-          <StockAdjustmentTable
-            items={selectedItems}
-            checkedItemIds={checkedItemIds}
-            isLoading={isLoading}
-            onToggleItem={toggleItemSelection}
-            onEditItem={handleEditItem}
-            onDeleteItem={handleDeleteItemClick}
-          />
-
-          {/* Note Field - only show in step 3 */}
-          {currentStep === 3 && (
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (Optional)
-              </label>
-              <textarea
-                placeholder="Add notes about this adjustment..."
-                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-300"
-                rows={3}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
+          {/* Items Table for Adjustment */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    <th className="px-4 py-4">Photo</th>
+                    <th className="px-6 py-4">Item Name</th>
+                    <th className="px-6 py-4">Current Quantity</th>
+                    <th className="px-6 py-4">Adjustment</th>
+                    <th className="px-6 py-4">New Quantity</th>
+                    <th className="px-6 py-4">Reason</th>
+                    <th className="px-4 py-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-10 text-center text-gray-500"
+                      >
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : filteredItems.length > 0 ? (
+                    filteredItems.map((item, index) => (
+                      <tr
+                        key={item.productId}
+                        className={cn(
+                          "transition-colors border-t border-gray-100",
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30",
+                          "hover:bg-gray-50"
+                        )}
+                      >
+                        <td className="px-4 py-4">
+                          <Avatar className="h-12 w-12 rounded-md">
+                            <AvatarImage
+                              src={item.productImage}
+                              alt={item.productName}
+                              className="object-cover"
+                            />
+                            <AvatarFallback>
+                              {item.productName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-gray-900 font-medium">
+                            {item.productName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {item.category}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-900">
+                          {item.previousQuantity}
+                        </td>
+                        <td className="px-6 py-4 font-medium">
+                          {item.quantity > 0 ? (
+                            item.adjustmentType === "Add" ? (
+                              <span className="text-green-500">
+                                +{item.quantity}
+                              </span>
+                            ) : (
+                              <span className="text-red-500">
+                                -{item.quantity}
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-gray-400 italic">
+                              Not set
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-gray-900">
+                          {item.quantity > 0
+                            ? item.newQuantity
+                            : item.previousQuantity}
+                        </td>
+                        <td className="px-6 py-4 text-gray-900">
+                          {item.reasonId ? (
+                            ADJUSTMENT_REASONS.find(
+                              (r) => r.id === item.reasonId
+                            )?.description ||
+                            item.customReason ||
+                            ""
+                          ) : (
+                            <span className="text-gray-400 italic">
+                              Not set
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-8 text-gray-500 hover:text-gray-700"
+                              onClick={() => handleEditItem(item.productId)}
+                              title="Edit"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-8 text-red-500 hover:text-red-700"
+                              onClick={() =>
+                                handleDeleteItemClick(item.productId)
+                              }
+                              title="Remove from selection"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-10 text-center text-gray-500"
+                      >
+                        {checkedItemIds.length === 0
+                          ? "No items selected for adjustment"
+                          : "No items found matching your criteria"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
         </>
       )}
 
@@ -722,7 +946,7 @@ const StockAdjustmentPage = () => {
             </div>
           </div>
 
-          {/* Location and Notes Summary */}
+          {/* Location and Notes Input */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="font-medium text-lg mb-2">Location Information</h3>
@@ -736,12 +960,15 @@ const StockAdjustmentPage = () => {
               </p>
             </div>
 
-            {note && (
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="font-medium text-lg mb-2">Notes</h3>
-                <p className="text-gray-700 whitespace-pre-line">{note}</p>
-              </div>
-            )}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="font-medium text-lg mb-2">Notes (Optional)</h3>
+              <Textarea
+                placeholder="Add notes about this adjustment..."
+                className="min-h-[100px] resize-none border-gray-300"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
           </div>
         </>
       )}
@@ -803,17 +1030,7 @@ const StockAdjustmentPage = () => {
         )}
       </div>
 
-      {/* Product Selection Modal for Step 1->2 */}
-      <ProductSelectionModal
-        open={productSelectionModalOpen}
-        onOpenChange={setProductSelectionModalOpen}
-        onProductsSelected={handleProductsSelectionModal}
-        selectedLocationIds={selectedLocationIds}
-        availableProducts={availableProducts}
-        existingItems={selectedItems}
-      />
-
-      {/* Add Products Modal for adding more products in Step 2 */}
+      {/* Add Products Modal */}
       <AddProductsModal
         open={addProductsModalOpen}
         onOpenChange={setAddProductsModalOpen}
