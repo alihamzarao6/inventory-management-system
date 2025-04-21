@@ -61,7 +61,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { title: "Incoming Items", icon: PackagePlus, path: "/incoming-items" },
     { title: "Stock Adjustment", icon: ScrollText, path: "/stock-adjustment" },
     { title: "Customers", icon: Users, path: "/customer" },
-    { title: "Admin", icon: Settings, path: "/admin", hasSubmenu: true },
+    {
+      title: "Admin",
+      icon: Settings,
+      path: "/admin/reorder-alerts",
+      hasSubmenu: true,
+    },
   ];
 
   // Admin submenu items
