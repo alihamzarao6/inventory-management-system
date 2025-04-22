@@ -1,10 +1,10 @@
 import React from "react";
-import IncomingRecordsPage from "@/components/admin/ReorderAlerts";
+import ReorderAlerts from "@/components/admin/ReorderAlerts";
 
 const page = () => {
   return (
     <>
-      <IncomingRecordsPage />
+      <ReorderAlerts />
     </>
   );
 };

@@ -64,7 +64,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     {
       title: "Admin",
       icon: Settings,
-      path: "/admin/reorder-alerts",
+      path: "",
       hasSubmenu: true,
     },
   ];
