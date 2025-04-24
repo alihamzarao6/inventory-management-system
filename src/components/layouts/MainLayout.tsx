@@ -89,7 +89,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     {
       name: "Stock Adjust Records",
       icon: FileText,
-      path: "/admin/adjust-records",
+      path: "/admin/stock-adjust-records",
     },
     { name: "Invoice Records", icon: FileText, path: "/admin/invoice-records" },
     { name: "Reports", icon: BarChart, path: "/admin/reports" },
