@@ -71,7 +71,6 @@ const StockAdjustRecords = () => {
     EnhancedAdjustment[]
   >([]);
 
-  // Filters
   const [usernameFilter, setUsernameFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
