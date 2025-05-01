@@ -1,4 +1,4 @@
-import HistoryPage from "@/components/incoming-items/HistoryPage";
+import HistoryPage from "@/components/incoming-items/IncomingItemsHistory/HistoryPage";
 import React from "react";
 
 const IncomingItemHistoryIndex = () => {

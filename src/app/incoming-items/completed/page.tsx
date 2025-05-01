@@ -1,4 +1,4 @@
-import CompletedPage from "@/components/incoming-items/CompletedPage";
+import CompletedPage from "@/components/incoming-items/IncomingItemsCompleted/CompletedPage";
 import React from "react";
 
 const IncomingItemsCompletedPage = () => {

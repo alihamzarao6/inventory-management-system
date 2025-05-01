@@ -16,32 +16,22 @@ import {
   User,
   Warehouse,
   Store,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import LocationFilters from "@/components/products/LocationFilters";
 import AddProductForm from "@/components/products/AddProductForm";
-import CreateSupplierForm from "@/components/incoming-items/CreateSupplierForm";
+import ProductDetailModal from "@/components/products/ProductDetailModal";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+import CreateSupplierForm from "@/components/incoming-items/CreateSupplierForm";
 import { Steps, Step } from "@/components/ui/steps";
 import { createHandleExport } from "@/utils/pdfExport";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import useToast from "@/hooks/useToast";
 import { StockAdjustmentItem } from "@/types/stockAdjustment";
 import { Product } from "@/types/products";
@@ -77,6 +67,10 @@ export const IncomingItemsPage = () => {
   const [isBatchEditMode, setIsBatchEditMode] = useState(false);
   const [addProductFormOpen, setAddProductFormOpen] = useState(false);
   const [createSupplierFormOpen, setCreateSupplierFormOpen] = useState(false);
+
+  // States to show product details modal
+  const [productDetailOpen, setProductDetailOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Export functionality
   const handleExport = createHandleExport(
@@ -683,6 +677,14 @@ export const IncomingItemsPage = () => {
 
   const filteredItems = getFilteredItems();
 
+  const handleViewProductDetail = (productId: string) => {
+    const product = availableProducts.find((p) => p.id === productId);
+    if (product) {
+      setSelectedProduct(product);
+      setProductDetailOpen(true);
+    }
+  };
+
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
@@ -874,7 +876,7 @@ export const IncomingItemsPage = () => {
                   <th className="px-4 py-4">Photo</th>
                   <th className="px-6 py-4">Item Name</th>
                   <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Current Quantity</th>
+                  <th className="px-6 py-4 text-center">Current Quantity</th>
                 </tr>
               </thead>
               <tbody>
@@ -910,9 +912,9 @@ export const IncomingItemsPage = () => {
                             checked={isSelected}
                             onCheckedChange={(e) => {
                               // @ts-ignore
-                              e.preventDefault(); // Prevent default checkbox behavior
+                              e.preventDefault();
                               // @ts-ignore
-                              e.stopPropagation(); // Prevent row click event
+                              e.stopPropagation();
                               toggleItemSelection(item.productId);
                             }}
                             className="rounded"
@@ -943,10 +945,24 @@ export const IncomingItemsPage = () => {
                             {item.category}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-gray-900">
                             {item.previousQuantity}
                           </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewProductDetail(item.productId);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -1050,7 +1066,12 @@ export const IncomingItemsPage = () => {
                             </Avatar>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-gray-900 font-medium">
+                            <div
+                              className="text-gray-900 font-medium cursor-pointer hover:text-blue-600"
+                              onClick={() =>
+                                handleViewProductDetail(item.productId)
+                              }
+                            >
                               {item.productName}
                             </div>
                             <div className="text-sm text-gray-500">
@@ -1225,7 +1246,12 @@ export const IncomingItemsPage = () => {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">
+                            <div
+                              className="text-gray-900 font-medium cursor-pointer hover:text-blue-600"
+                              onClick={() =>
+                                handleViewProductDetail(item.productId)
+                              }
+                            >
                               {item.productName}
                             </div>
                             <div className="text-sm text-gray-500">
@@ -1386,6 +1412,15 @@ export const IncomingItemsPage = () => {
         cancelText="Cancel"
         isDestructive={true}
       />
+
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          open={productDetailOpen}
+          onOpenChange={setProductDetailOpen}
+          viewOnly={true}
+        />
+      )}
 
       {/* Printable content for PDF export - hidden */}
       <div className="hidden">
