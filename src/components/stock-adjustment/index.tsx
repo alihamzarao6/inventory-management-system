@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Check,
   ChevronLeft,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import LocationFilters from "@/components/products/LocationFilters";
 import AdjustmentFormModal from "@/components/stock-adjustment/AdjustmentFormModal";
 import AddProductsModal from "@/components/stock-adjustment/AddProductsModal";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+import ProductDetailModal from "@/components/products/ProductDetailModal";
 import { Steps, Step } from "@/components/ui/steps";
 import { createHandleExport } from "@/utils/pdfExport";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,6 +58,10 @@ const StockAdjustmentPage = () => {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // states to show product detail modal
+  const [productDetailOpen, setProductDetailOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Modals
   const [addProductsModalOpen, setAddProductsModalOpen] = useState(false);
@@ -479,12 +485,12 @@ const StockAdjustmentPage = () => {
     }
   };
 
-  // Format adjustment value with + or - sign
-  const formatAdjustment = (item: StockAdjustmentItem) => {
-    const value =
-      item.adjustmentType === "Add" ? item.quantity : -item.quantity;
-    const color = value > 0 ? "text-green-500" : "text-red-500";
-    return <span className={color}>{value > 0 ? `+${value}` : value}</span>;
+  const handleViewProductDetail = (productId: string) => {
+    const product = availableProducts.find((p) => p.id === productId);
+    if (product) {
+      setSelectedProduct(product);
+      setProductDetailOpen(true);
+    }
   };
 
   const filteredItems = getFilteredItems();
@@ -608,7 +614,7 @@ const StockAdjustmentPage = () => {
                     <th className="px-4 py-4">Photo</th>
                     <th className="px-6 py-4">Item Name</th>
                     <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Current Quantity</th>
+                    <th className="px-6 py-4 text-center">Current Quantity</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -669,8 +675,22 @@ const StockAdjustmentPage = () => {
                           <td className="px-6 py-4 text-gray-500">
                             {item.category}
                           </td>
-                          <td className="px-6 py-4 text-gray-900">
+                          <td className="px-6 py-4 text-gray-900 text-center">
                             {item.previousQuantity}
+                          </td>
+                          <td className="px-4 py-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewProductDetail(item.productId);
+                              }}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View Details
+                            </Button>
                           </td>
                         </tr>
                       );
@@ -770,7 +790,12 @@ const StockAdjustmentPage = () => {
                           </Avatar>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-gray-900 font-medium">
+                          <div
+                            className="text-gray-900 font-medium cursor-pointer hover:text-blue-600"
+                            onClick={() =>
+                              handleViewProductDetail(item.productId)
+                            }
+                          >
                             {item.productName}
                           </div>
                           <div className="text-sm text-gray-500">
@@ -908,7 +933,12 @@ const StockAdjustmentPage = () => {
                           </Avatar>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-gray-900 font-medium">
+                          <div
+                            className="text-gray-900 font-medium cursor-pointer hover:text-blue-600"
+                            onClick={() =>
+                              handleViewProductDetail(item.productId)
+                            }
+                          >
                             {item.productName}
                           </div>
                           <div className="text-sm text-gray-500">
@@ -1126,6 +1156,14 @@ const StockAdjustmentPage = () => {
           )}
         </div>
       </div>
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          open={productDetailOpen}
+          onOpenChange={setProductDetailOpen}
+          viewOnly={true}
+        />
+      )}
     </div>
   );
 };

@@ -20,16 +20,18 @@ interface ProductDetailModalProps {
   product: Product;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit: (product: Product) => void;
-  onTransfer: (product: Product, locationId: string) => void;
-  onStockAdjust: (product: Product, locationId: string) => void;
-  onIncomingItems: (product: Product, locationId: string) => void;
+  viewOnly?: boolean;
+  onEdit?: (product: Product) => void;
+  onTransfer?: (product: Product, locationId: string) => void;
+  onStockAdjust?: (product: Product, locationId: string) => void;
+  onIncomingItems?: (product: Product, locationId: string) => void;
 }
 
 const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   open,
   onOpenChange,
+  viewOnly = false,
   onEdit,
   onTransfer,
   onStockAdjust,
@@ -64,18 +66,20 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     type: "transfer" | "adjust" | "incoming",
     locationId: string
   ) => {
+    if (viewOnly) return; // Don't perform actions in view-only mode
+
     setSelectedLocationId(locationId);
     setActionType(type);
 
     switch (type) {
       case "transfer":
-        onTransfer(product, locationId);
+        onTransfer && onTransfer(product, locationId);
         break;
       case "adjust":
-        onStockAdjust(product, locationId);
+        onStockAdjust && onStockAdjust(product, locationId);
         break;
       case "incoming":
-        onIncomingItems(product, locationId);
+        onIncomingItems && onIncomingItems(product, locationId);
         break;
     }
   };
@@ -106,7 +110,9 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="border-b px-6">
               <TabsList className="flex gap-3 p-3 rounded-xl shadow-lg">
                 <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
+                {!viewOnly && (
+                  <TabsTrigger value="history">History</TabsTrigger>
+                )}
               </TabsList>
             </div>
 
