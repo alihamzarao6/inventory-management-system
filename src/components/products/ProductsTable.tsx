@@ -8,7 +8,10 @@ import {
   Printer,
 } from "lucide-react";
 import { Product, ProductFiltersT, PaginationState } from "@/types/products";
-import { getTotalProductQuantity } from "@/constants/mockProducts";
+import {
+  getTotalProductQuantity,
+  PRODUCT_CATEGORIES,
+} from "@/constants/mockProducts";
 import { cn } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +23,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProductsTableProps {
   products: Product[];
@@ -367,17 +377,28 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                               }
                               className="px-2 py-1 h-8"
                             />
-                            <Input
+                            {/* Replace this Input with Select dropdown */}
+                            <Select
                               value={productCategory}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  product.id,
-                                  "category",
-                                  e.target.value
-                                )
+                              onValueChange={(value) =>
+                                handleInputChange(product.id, "category", value)
                               }
-                              className="px-2 py-1 h-8 text-sm text-gray-500"
-                            />
+                            >
+                              <SelectTrigger className="h-8 text-sm text-gray-500 px-2 py-1">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PRODUCT_CATEGORIES.map((category) => (
+                                  <SelectItem
+                                    key={category}
+                                    value={category}
+                                    className="hover:!bg-gray-200"
+                                  >
+                                    {category}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         ) : (
                           <div
