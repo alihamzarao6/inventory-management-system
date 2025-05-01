@@ -8,6 +8,7 @@ import {
   User,
   Store,
   Warehouse,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Steps, Step } from "@/components/ui/steps";
 import LocationFilters from "@/components/products/LocationFilters";
-import TransferCompletedView from "./TransferCompletedView";
+import TransferCompletedView from "./TransferComplete/TransferCompletedView";
+import ProductDetailModal from "@/components/products/ProductDetailModal";
 import { TransferFormData, TransferItem } from "@/types/transfers";
 import { MOCK_LOCATIONS, MOCK_SUB_LOCATIONS } from "@/constants/mockLocations";
 import { MOCK_PRODUCTS } from "@/constants/mockProducts";
@@ -29,6 +31,7 @@ import {
 } from "@/constants/mockCustomers";
 import { cn } from "@/utils";
 import useToast from "@/hooks/useToast";
+import { Product } from "@/types/products";
 
 export const TransferModule: React.FC = () => {
   const router = useRouter();
@@ -39,6 +42,10 @@ export const TransferModule: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isCustomerDestination, setIsCustomerDestination] = useState(false);
   const [isCustomerSource, setIsCustomerSource] = useState(false);
+
+  // States to show product details modal
+  const [productDetailOpen, setProductDetailOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [transferData, setTransferData] = useState<TransferFormData>({
     sourceLocationIds: [],
@@ -497,18 +504,39 @@ export const TransferModule: React.FC = () => {
     if (currentStep === 1) {
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // Added debug logging
-      console.log("Next Step clicked in Step 2");
-      console.log("Selected Items:", selectedItems);
-      console.log("Available Products Length:", availableProducts.length);
-      console.log("Available Products:", availableProducts);
-
       // Directly call moveToQuantityStep
       moveToQuantityStep();
     } else if (currentStep === 3) {
       setCurrentStep(4);
     } else if (currentStep === 4) {
       handleCompleteTransfer();
+    }
+  };
+
+  const handleViewProductDetail = (productId: string) => {
+    // In Step 2, find the product from availableProducts
+    if (currentStep === 2) {
+      const productData = availableProducts.find(
+        (item) => item.product.id === productId
+      );
+      if (productData) {
+        setSelectedProduct(productData.product);
+        setProductDetailOpen(true);
+      }
+    }
+    // In Step 3 and 4, find the product from transferItems
+    else {
+      const item = transferData.items.find(
+        (item) => item.productId === productId
+      );
+      if (item) {
+        // Find the full product details from MOCK_PRODUCTS
+        const product = MOCK_PRODUCTS.find((p) => p.id === item.productId);
+        if (product) {
+          setSelectedProduct(product);
+          setProductDetailOpen(true);
+        }
+      }
     }
   };
 
@@ -523,87 +551,529 @@ export const TransferModule: React.FC = () => {
   }
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Transfer</h1>
+    <>
+      <div className="p-4 bg-gray-50 min-h-screen">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Transfer</h1>
 
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <Steps currentStep={currentStep} className="mb-4">
-          <Step title="Select Locations" />
-          <Step title="Select Items" />
-          <Step title="Set Quantities" />
-          <Step title="Review & Complete" />
-        </Steps>
-      </div>
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <Steps currentStep={currentStep} className="mb-4">
+            <Step title="Select Locations" />
+            <Step title="Select Items" />
+            <Step title="Set Quantities" />
+            <Step title="Review & Complete" />
+          </Steps>
+        </div>
 
-      {/* Step 1: Location Selection */}
-      <div className={currentStep === 1 ? "block" : "hidden"}>
-        <div className="flex flex-col md:flex-row gap-6 mb-8">
-          <div className="flex-1">
-            <div className="mb-2 flex justify-between">
-              <label className="block text-sm font-medium text-gray-700">
-                From
-              </label>
-              <div className="text-sm text-gray-500">
-                {transferData.sourceLocationIds.length > 0 &&
-                  `${transferData.sourceLocationIds.length} location(s) selected`}
+        {/* Step 1: Location Selection */}
+        <div className={currentStep === 1 ? "block" : "hidden"}>
+          <div className="flex flex-col md:flex-row gap-6 mb-8">
+            <div className="flex-1">
+              <div className="mb-2 flex justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  From
+                </label>
+                <div className="text-sm text-gray-500">
+                  {transferData.sourceLocationIds.length > 0 &&
+                    `${transferData.sourceLocationIds.length} location(s) selected`}
+                </div>
               </div>
+
+              <Card className="p-4 bg-white">
+                <LocationFilters
+                  selectedLocationIds={transferData.sourceLocationIds}
+                  onLocationSelect={handleSourceLocationSelect}
+                  showCustomers={true} // Allow customers as sources now
+                  allowMultipleSelection={true} // Allow multiple selection for source
+                />
+
+                {/* Show selected locations as badges */}
+                {transferData.sourceLocationIds.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {transferData.sourceLocationIds.map((id) => (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="px-3 py-1 flex items-center"
+                      >
+                        {getLocationIcon(id)}
+                        {getLocationName(id)}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
 
-            <Card className="p-4 bg-white">
-              <LocationFilters
-                selectedLocationIds={transferData.sourceLocationIds}
-                onLocationSelect={handleSourceLocationSelect}
-                showCustomers={true} // Allow customers as sources now
-                allowMultipleSelection={true} // Allow multiple selection for source
-              />
+            <div className="flex items-center justify-center text-gray-400 mt-10">
+              <div className="hidden md:block w-10 h-0.5 bg-gray-200"></div>
+              <ArrowRight className="hidden md:block mx-2" />
+              <div className="hidden md:block w-10 h-0.5 bg-gray-200"></div>
+            </div>
 
-              {/* Show selected locations as badges */}
-              {transferData.sourceLocationIds.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {transferData.sourceLocationIds.map((id) => (
+            <div className="flex-1">
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  To
+                </label>
+              </div>
+
+              <Card className="p-4 bg-white">
+                <LocationFilters
+                  selectedLocationIds={
+                    transferData.destinationLocationId
+                      ? [transferData.destinationLocationId]
+                      : []
+                  }
+                  onLocationSelect={handleDestinationLocationSelect}
+                  showCustomers={true} // Allow customers as destinations
+                  allowMultipleSelection={false} // Only allow single selection for destination
+                />
+
+                {/* Show selected destination as badge */}
+                {transferData.destinationLocationId && (
+                  <div className="mt-4">
                     <Badge
-                      key={id}
                       variant="secondary"
                       className="px-3 py-1 flex items-center"
                     >
-                      {getLocationIcon(id)}
-                      {getLocationName(id)}
+                      {getLocationIcon(transferData.destinationLocationId)}
+                      {getLocationName(transferData.destinationLocationId)}
                     </Badge>
-                  ))}
-                </div>
-              )}
-            </Card>
+                  </div>
+                )}
+              </Card>
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center justify-center text-gray-400 mt-10">
-            <div className="hidden md:block w-10 h-0.5 bg-gray-200"></div>
-            <ArrowRight className="hidden md:block mx-2" />
-            <div className="hidden md:block w-10 h-0.5 bg-gray-200"></div>
-          </div>
-
-          <div className="flex-1">
-            <div className="mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                To
-              </label>
+        {/* Step 2: Product Selection */}
+        <div className={currentStep === 2 ? "block" : "hidden"}>
+          {/* Search and actions */}
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="search"
+                placeholder="Search items..."
+                className="pl-10 bg-white"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
-            <Card className="p-4 bg-white">
-              <LocationFilters
-                selectedLocationIds={
-                  transferData.destinationLocationId
-                    ? [transferData.destinationLocationId]
-                    : []
-                }
-                onLocationSelect={handleDestinationLocationSelect}
-                showCustomers={true} // Allow customers as destinations
-                allowMultipleSelection={false} // Only allow single selection for destination
-              />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex items-center gap-1 bg-white"
+                onClick={handleRemoveSelectedItems}
+                disabled={selectedItems.length === 0}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Clear Selection</span>
+              </Button>
+            </div>
+          </div>
 
-              {/* Show selected destination as badge */}
-              {transferData.destinationLocationId && (
-                <div className="mt-4">
+          {/* Products table for selection */}
+          <Card className="mb-6 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
+                    <th className="pl-4 py-4 pr-2">
+                      <Checkbox
+                        checked={
+                          selectedItems.length ===
+                            filteredAvailableProducts.length &&
+                          filteredAvailableProducts.length > 0
+                        }
+                        onCheckedChange={toggleSelectAll}
+                        className="rounded"
+                      />
+                    </th>
+                    <th className="px-4 py-4">Photo</th>
+                    <th className="px-6 py-4">Item Name</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4 text-center">
+                      <div className="flex flex-col">
+                        <span>Available Quantity</span>
+                        <span className="text-xs font-normal uppercase">
+                          From Location
+                        </span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAvailableProducts.length > 0 ? (
+                    filteredAvailableProducts.map((item, index) => {
+                      const isSelected = selectedItems.includes(
+                        `${item.product.id}-${item.sourceLocationId}`
+                      );
+
+                      return (
+                        <tr
+                          key={`${item.product.id}-${item.sourceLocationId}`}
+                          className={cn(
+                            "transition-colors border-t border-gray-100",
+                            isSelected
+                              ? "bg-blue-50"
+                              : index % 2 === 0
+                              ? "bg-white"
+                              : "bg-gray-50/30",
+                            "hover:bg-gray-50 cursor-pointer"
+                          )}
+                          onClick={() => {
+                            console.log(
+                              "Row clicked for:",
+                              item.product.id,
+                              item.sourceLocationId
+                            );
+                            toggleProductSelection(
+                              item.product.id,
+                              item.sourceLocationId
+                            );
+                          }}
+                        >
+                          <td
+                            className="pl-4 py-4 pr-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              // Use the more explicit form that passes the checked state
+                              onCheckedChange={(checked) => {
+                                // Only toggle if there's an actual change
+                                if (checked !== isSelected) {
+                                  console.log(
+                                    "Checkbox toggled for:",
+                                    item.product.id,
+                                    item.sourceLocationId,
+                                    "New state:",
+                                    checked
+                                  );
+                                  toggleProductSelection(
+                                    item.product.id,
+                                    item.sourceLocationId
+                                  );
+                                }
+                              }}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
+                            <Avatar className="h-12 w-12 rounded-md">
+                              <AvatarImage
+                                src={item.product.image}
+                                alt={item.product.name}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                {item.product.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-gray-700 font-medium cursor-pointer">
+                              {item.product.name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-700">
+                              {item.product.category}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div>
+                              <div className="text-gray-900 font-medium">
+                                {item.quantity}
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                {item.sourceLocationName}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewProductDetail(item.product.id);
+                              }}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View Details
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-gray-500"
+                      >
+                        {searchTerm
+                          ? "No items found matching your search"
+                          : isCustomerSource
+                          ? "No products available for the selected customer"
+                          : "No products available in the selected locations"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+
+        {/* Step 3: Set Quantities */}
+        <div className={currentStep === 3 ? "block" : "hidden"}>
+          {/* Search and actions */}
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="search"
+                placeholder="Search items..."
+                className="pl-10 bg-white"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex items-center gap-1 bg-white"
+                onClick={handleRemoveSelectedItems}
+                disabled={selectedItems.length === 0}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Remove Selected Items</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Destination type indicator for customer transfers */}
+          {isCustomerDestination && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center">
+                <User className="h-5 w-5 text-blue-500 mr-2" />
+                <p className="text-blue-700">
+                  <span className="font-medium">Customer Transfer:</span> Items
+                  will be transferred to{" "}
+                  {getLocationName(transferData.destinationLocationId)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Items table with quantity inputs */}
+          <Card className="mb-6 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
+                    <th className="pl-4 py-4 pr-2">
+                      <Checkbox
+                        checked={
+                          selectedItems.length === transferData.items.length &&
+                          transferData.items.length > 0
+                        }
+                        onCheckedChange={toggleSelectAll}
+                        className="rounded"
+                      />
+                    </th>
+                    <th className="px-4 py-4">Photo</th>
+                    <th className="px-6 py-4">Item Name</th>
+                    <th className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span>Quantity</span>
+                        <span className="text-xs font-normal uppercase">
+                          From Location
+                        </span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-center">Transfer Amount</th>
+                    <th className="px-6 py-4 text-center">
+                      <div className="flex flex-col">
+                        <span>Quantity</span>
+                        <span className="text-xs font-normal uppercase">
+                          To {isCustomerDestination ? "Customer" : "Location"}
+                        </span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTransferItems.length > 0 ? (
+                    filteredTransferItems.map((item, index) => {
+                      const isItemSelected = selectedItems.includes(
+                        `${item.productId}-${item.sourceLocationId}`
+                      );
+
+                      return (
+                        <tr
+                          key={`${item.productId}-${item.sourceLocationId}`}
+                          className={cn(
+                            "transition-colors border-t border-gray-100",
+                            isItemSelected
+                              ? "bg-blue-50"
+                              : index % 2 === 0
+                              ? "bg-white"
+                              : "bg-gray-50/30",
+                            "hover:bg-gray-50"
+                          )}
+                        >
+                          <td className="pl-4 py-4 pr-2">
+                            <Checkbox
+                              checked={isItemSelected}
+                              onCheckedChange={() =>
+                                toggleProductSelection(
+                                  item.productId,
+                                  item.sourceLocationId
+                                )
+                              }
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
+                            <Avatar className="h-12 w-12 rounded-md">
+                              <AvatarImage
+                                src={item.productImage}
+                                alt={item.productName}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                {item.productName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <div
+                                className="text-gray-900 font-medium cursor-pointer hover:text-blue-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewProductDetail(item.productId);
+                                }}
+                              >
+                                {item.productName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {item.category}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="flex items-center">
+                                <span className="text-gray-900">
+                                  {item.sourceQuantity}
+                                </span>
+                                <span className="text-gray-500 mx-2">→</span>
+                                <span className="text-gray-900">
+                                  {item.sourceQuantity - item.quantity}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                From: {item.sourceLocationName}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Input
+                              type="number"
+                              min="1"
+                              max={item.sourceQuantity}
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  item.productId,
+                                  item.sourceLocationId,
+                                  e.target.value
+                                )
+                              }
+                              className="w-24 text-center mx-auto"
+                            />
+                            <div className="text-xs text-gray-500 mt-1">
+                              {item.sourceQuantity - item.quantity} will remain
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div>
+                              <div className="flex items-center justify-center">
+                                <span className="text-gray-900">
+                                  {item.destinationQuantity}
+                                </span>
+                                <span className="text-gray-500 mx-2">→</span>
+                                <span className="text-gray-900 font-medium">
+                                  {item.destinationQuantity + item.quantity}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                To:{" "}
+                                {getLocationName(
+                                  transferData.destinationLocationId
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-6 py-8 text-center text-gray-500"
+                      >
+                        No items have been added to the transfer
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+
+        {/* Step 4: Review & Complete */}
+        <div className={currentStep === 4 ? "block" : "hidden"}>
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-4">
+              Review Transfer Details
+            </h2>
+
+            <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
+              <div className="flex flex-col md:flex-row justify-between mb-6">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">From</p>
+                  <div className="flex flex-wrap gap-2">
+                    {transferData.sourceLocationIds.map((id) => (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="px-3 py-1 flex items-center"
+                      >
+                        {getLocationIcon(id)}
+                        {getLocationName(id)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 md:mt-0 flex items-center">
+                  <ArrowRight className="text-gray-400 mx-4 hidden md:block" />
+                </div>
+
+                <div className="mt-4 md:mt-0">
+                  <p className="text-sm text-gray-500 mb-1">To</p>
                   <Badge
                     variant="secondary"
                     className="px-3 py-1 flex items-center"
@@ -612,556 +1082,152 @@ export const TransferModule: React.FC = () => {
                     {getLocationName(transferData.destinationLocationId)}
                   </Badge>
                 </div>
-              )}
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 2: Product Selection */}
-      <div className={currentStep === 2 ? "block" : "hidden"}>
-        {/* Search and actions */}
-        <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="search"
-              placeholder="Search items..."
-              className="pl-10 bg-white"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex items-center gap-1 bg-white"
-              onClick={handleRemoveSelectedItems}
-              disabled={selectedItems.length === 0}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Clear Selection</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Products table for selection */}
-        <Card className="mb-6 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
-                  <th className="pl-4 py-4 pr-2">
-                    <Checkbox
-                      checked={
-                        selectedItems.length ===
-                          filteredAvailableProducts.length &&
-                        filteredAvailableProducts.length > 0
-                      }
-                      onCheckedChange={toggleSelectAll}
-                      className="rounded"
-                    />
-                  </th>
-                  <th className="px-4 py-4">Photo</th>
-                  <th className="px-6 py-4">Item Name</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span>Available Quantity</span>
-                      <span className="text-xs font-normal uppercase">
-                        From Location
-                      </span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAvailableProducts.length > 0 ? (
-                  filteredAvailableProducts.map((item, index) => {
-                    const isSelected = selectedItems.includes(
-                      `${item.product.id}-${item.sourceLocationId}`
-                    );
-
-                    return (
-                      <tr
-                        key={`${item.product.id}-${item.sourceLocationId}`}
-                        className={cn(
-                          "transition-colors border-t border-gray-100",
-                          isSelected
-                            ? "bg-blue-50"
-                            : index % 2 === 0
-                            ? "bg-white"
-                            : "bg-gray-50/30",
-                          "hover:bg-gray-50 cursor-pointer"
-                        )}
-                        onClick={() => {
-                          console.log(
-                            "Row clicked for:",
-                            item.product.id,
-                            item.sourceLocationId
-                          );
-                          toggleProductSelection(
-                            item.product.id,
-                            item.sourceLocationId
-                          );
-                        }}
-                      >
-                        <td
-                          className="pl-4 py-4 pr-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            // Use the more explicit form that passes the checked state
-                            onCheckedChange={(checked) => {
-                              // Only toggle if there's an actual change
-                              if (checked !== isSelected) {
-                                console.log(
-                                  "Checkbox toggled for:",
-                                  item.product.id,
-                                  item.sourceLocationId,
-                                  "New state:",
-                                  checked
-                                );
-                                toggleProductSelection(
-                                  item.product.id,
-                                  item.sourceLocationId
-                                );
-                              }
-                            }}
-                            className="rounded"
-                          />
-                        </td>
-                        <td className="px-4 py-4">
-                          <Avatar className="h-12 w-12 rounded-md">
-                            <AvatarImage
-                              src={item.product.image}
-                              alt={item.product.name}
-                              className="object-cover"
-                            />
-                            <AvatarFallback>
-                              {item.product.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-gray-900 font-medium">
-                            {item.product.name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-700">
-                            {item.product.category}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="text-gray-900 font-medium">
-                              {item.quantity}
-                            </div>
-                            <div className="text-sm text-gray-500 mt-1">
-                              {item.sourceLocationName}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-6 py-8 text-center text-gray-500"
-                    >
-                      {searchTerm
-                        ? "No items found matching your search"
-                        : isCustomerSource
-                        ? "No products available for the selected customer"
-                        : "No products available in the selected locations"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
-
-      {/* Step 3: Set Quantities */}
-      <div className={currentStep === 3 ? "block" : "hidden"}>
-        {/* Search and actions */}
-        <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="search"
-              placeholder="Search items..."
-              className="pl-10 bg-white"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex items-center gap-1 bg-white"
-              onClick={handleRemoveSelectedItems}
-              disabled={selectedItems.length === 0}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Remove Selected Items</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Destination type indicator for customer transfers */}
-        {isCustomerDestination && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-center">
-              <User className="h-5 w-5 text-blue-500 mr-2" />
-              <p className="text-blue-700">
-                <span className="font-medium">Customer Transfer:</span> Items
-                will be transferred to{" "}
-                {getLocationName(transferData.destinationLocationId)}
-              </p>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Items table with quantity inputs */}
-        <Card className="mb-6 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
-                  <th className="pl-4 py-4 pr-2">
-                    <Checkbox
-                      checked={
-                        selectedItems.length === transferData.items.length &&
-                        transferData.items.length > 0
-                      }
-                      onCheckedChange={toggleSelectAll}
-                      className="rounded"
-                    />
-                  </th>
-                  <th className="px-4 py-4">Photo</th>
-                  <th className="px-6 py-4">Item Name</th>
-                  <th className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span>Quantity</span>
-                      <span className="text-xs font-normal uppercase">
-                        From Location
-                      </span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4 text-center">Transfer Amount</th>
-                  <th className="px-6 py-4 text-center">
-                    <div className="flex flex-col">
-                      <span>Quantity</span>
-                      <span className="text-xs font-normal uppercase">
-                        To {isCustomerDestination ? "Customer" : "Location"}
-                      </span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTransferItems.length > 0 ? (
-                  filteredTransferItems.map((item, index) => {
-                    const isItemSelected = selectedItems.includes(
-                      `${item.productId}-${item.sourceLocationId}`
-                    );
+            {/* Products summary */}
+            <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
+              <h3 className="text-lg font-medium mb-4">Items to Transfer</h3>
 
-                    return (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="px-4 py-3">Item</th>
+                      <th className="px-4 py-3">From</th>
+                      <th className="px-4 py-3 text-center">
+                        Transfer Quantity
+                      </th>
+                      <th className="px-4 py-3">To</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transferData.items.map((item, index) => (
                       <tr
                         key={`${item.productId}-${item.sourceLocationId}`}
-                        className={cn(
-                          "transition-colors border-t border-gray-100",
-                          isItemSelected
-                            ? "bg-blue-50"
-                            : index % 2 === 0
-                            ? "bg-white"
-                            : "bg-gray-50/30",
-                          "hover:bg-gray-50"
-                        )}
+                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
                       >
-                        <td className="pl-4 py-4 pr-2">
-                          <Checkbox
-                            checked={isItemSelected}
-                            onCheckedChange={() =>
-                              toggleProductSelection(
-                                item.productId,
-                                item.sourceLocationId
-                              )
-                            }
-                            className="rounded"
-                          />
+                        <td className="px-4 py-4">
+                          <div className="flex items-center">
+                            <Avatar className="h-10 w-10 rounded-md mr-3">
+                              <AvatarImage
+                                src={item.productImage}
+                                alt={item.productName}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                {item.productName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div
+                                className="text-gray-900 font-medium cursor-pointer hover:text-blue-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewProductDetail(item.productId);
+                                }}
+                              >
+                                {item.productName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {item.category}
+                              </div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-4">
-                          <Avatar className="h-12 w-12 rounded-md">
-                            <AvatarImage
-                              src={item.productImage}
-                              alt={item.productName}
-                              className="object-cover"
-                            />
-                            <AvatarFallback>
-                              {item.productName.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="text-gray-900 font-medium">
-                              {item.productName}
+                          <div className="text-sm">
+                            <div>{item.sourceLocationName}</div>
+                            <div className="text-gray-500">
+                              Available: {item.sourceQuantity}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {item.category}
+                            <div className="text-gray-500">
+                              Remaining: {item.sourceQuantity - item.quantity}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="flex items-center">
-                              <span className="text-gray-900">
-                                {item.sourceQuantity}
-                              </span>
-                              <span className="text-gray-500 mx-2">→</span>
-                              <span className="text-gray-900">
-                                {item.sourceQuantity - item.quantity}
-                              </span>
-                            </div>
-                            <div className="text-sm text-gray-500 mt-1">
-                              From: {item.sourceLocationName}
-                            </div>
-                          </div>
+                        <td className="px-4 py-4 text-center font-medium">
+                          {item.quantity}
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <Input
-                            type="number"
-                            min="1"
-                            max={item.sourceQuantity}
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleQuantityChange(
-                                item.productId,
-                                item.sourceLocationId,
-                                e.target.value
-                              )
-                            }
-                            className="w-24 text-center mx-auto"
-                          />
-                          <div className="text-xs text-gray-500 mt-1">
-                            {item.sourceQuantity - item.quantity} will remain
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div>
-                            <div className="flex items-center justify-center">
-                              <span className="text-gray-900">
-                                {item.destinationQuantity}
-                              </span>
-                              <span className="text-gray-500 mx-2">→</span>
-                              <span className="text-gray-900 font-medium">
-                                {item.destinationQuantity + item.quantity}
-                              </span>
-                            </div>
-                            <div className="text-sm text-gray-500 mt-1">
-                              To:{" "}
+                        <td className="px-4 py-4">
+                          <div className="text-sm">
+                            <div>
                               {getLocationName(
                                 transferData.destinationLocationId
                               )}
                             </div>
+                            <div className="text-gray-500">
+                              Current: {item.destinationQuantity}
+                            </div>
+                            <div className="text-gray-500">
+                              After: {item.destinationQuantity + item.quantity}
+                            </div>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-8 text-center text-gray-500"
-                    >
-                      No items have been added to the transfer
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
-
-      {/* Step 4: Review & Complete */}
-      <div className={currentStep === 4 ? "block" : "hidden"}>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Review Transfer Details
-          </h2>
-
-          <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
-            <div className="flex flex-col md:flex-row justify-between mb-6">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">From</p>
-                <div className="flex flex-wrap gap-2">
-                  {transferData.sourceLocationIds.map((id) => (
-                    <Badge
-                      key={id}
-                      variant="secondary"
-                      className="px-3 py-1 flex items-center"
-                    >
-                      {getLocationIcon(id)}
-                      {getLocationName(id)}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 md:mt-0 flex items-center">
-                <ArrowRight className="text-gray-400 mx-4 hidden md:block" />
-              </div>
-
-              <div className="mt-4 md:mt-0">
-                <p className="text-sm text-gray-500 mb-1">To</p>
-                <Badge
-                  variant="secondary"
-                  className="px-3 py-1 flex items-center"
-                >
-                  {getLocationIcon(transferData.destinationLocationId)}
-                  {getLocationName(transferData.destinationLocationId)}
-                </Badge>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
 
-          {/* Products summary */}
-          <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
-            <h3 className="text-lg font-medium mb-4">Items to Transfer</h3>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                    <th className="px-4 py-3">Item</th>
-                    <th className="px-4 py-3">From</th>
-                    <th className="px-4 py-3 text-center">Transfer Quantity</th>
-                    <th className="px-4 py-3">To</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transferData.items.map((item, index) => (
-                    <tr
-                      key={`${item.productId}-${item.sourceLocationId}`}
-                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                    >
-                      <td className="px-4 py-4">
-                        <div className="flex items-center">
-                          <Avatar className="h-10 w-10 rounded-md mr-3">
-                            <AvatarImage
-                              src={item.productImage}
-                              alt={item.productName}
-                              className="object-cover"
-                            />
-                            <AvatarFallback>
-                              {item.productName.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">
-                              {item.productName}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {item.category}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm">
-                          <div>{item.sourceLocationName}</div>
-                          <div className="text-gray-500">
-                            Available: {item.sourceQuantity}
-                          </div>
-                          <div className="text-gray-500">
-                            Remaining: {item.sourceQuantity - item.quantity}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center font-medium">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm">
-                          <div>
-                            {getLocationName(
-                              transferData.destinationLocationId
-                            )}
-                          </div>
-                          <div className="text-gray-500">
-                            Current: {item.destinationQuantity}
-                          </div>
-                          <div className="text-gray-500">
-                            After: {item.destinationQuantity + item.quantity}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Note field */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Transfer Note (Optional)
+              </label>
+              <Textarea
+                placeholder="Add a note for this transfer..."
+                className="min-h-[100px] resize-none"
+                value={transferData.note || ""}
+                onChange={(e) =>
+                  setTransferData((prev) => ({ ...prev, note: e.target.value }))
+                }
+              />
             </div>
-          </div>
-
-          {/* Note field */}
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Transfer Note (Optional)
-            </label>
-            <Textarea
-              placeholder="Add a note for this transfer..."
-              className="min-h-[100px] resize-none"
-              value={transferData.note || ""}
-              onChange={(e) =>
-                setTransferData((prev) => ({ ...prev, note: e.target.value }))
-              }
-            />
           </div>
         </div>
-      </div>
 
-      {/* Action buttons */}
-      <div className="flex justify-end gap-3">
-        {currentStep > 1 && (
+        {/* Action buttons */}
+        <div className="flex justify-end gap-3">
+          {currentStep > 1 && (
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep((prev) => prev - 1)}
+              className="bg-white"
+            >
+              Back
+            </Button>
+          )}
           <Button
-            variant="outline"
-            onClick={() => setCurrentStep((prev) => prev - 1)}
-            className="bg-white"
+            className={
+              currentStep === 4
+                ? "bg-green-500 hover:bg-green-600 text-white"
+                : "bg-white"
+            }
+            onClick={handleNextStep}
+            disabled={!isStepValid()}
+            variant={currentStep < 4 ? "outline" : "default"}
           >
-            Back
+            {currentStep === 1
+              ? "Select Items"
+              : currentStep === 2
+              ? "Set Quantities"
+              : currentStep === 3
+              ? "Review & Complete"
+              : "Complete Transfer"}
           </Button>
-        )}
-        <Button
-          className={
-            currentStep === 4
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-white"
-          }
-          onClick={handleNextStep}
-          disabled={!isStepValid()}
-          variant={currentStep < 4 ? "outline" : "default"}
-        >
-          {currentStep === 1
-            ? "Select Items"
-            : currentStep === 2
-            ? "Set Quantities"
-            : currentStep === 3
-            ? "Review & Complete"
-            : "Complete Transfer"}
-        </Button>
+        </div>
       </div>
-    </div>
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          open={productDetailOpen}
+          onOpenChange={setProductDetailOpen}
+          viewOnly={true}
+        />
+      )}
+    </>
   );
 };
 

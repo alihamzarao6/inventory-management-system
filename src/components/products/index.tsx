@@ -587,23 +587,6 @@ const ProductsPage = () => {
             open={addProductOpen}
             onOpenChange={setAddProductOpen}
             onSubmit={handleAddProduct}
-            // initialData={
-            //   selectedProduct
-            //     ? {
-            //         name: selectedProduct.name,
-            //         category: selectedProduct.category,
-            //         initialQuantity: 0,
-            //         reorderLevel: selectedProduct.reorderLevel,
-            //         initialLocationId:
-            //           selectedProduct.locations[0]?.locationId || "",
-            //         costPrice: selectedProduct.costPrice,
-            //         wholesalePrice: selectedProduct.wholesalePrice,
-            //         retailPrice: selectedProduct.retailPrice,
-            //         note: selectedProduct.note,
-            //         image: selectedProduct.image,
-            //       }
-            //     : undefined
-            // }
             similarNameWarning={similarNameWarning}
             setSimilarNameWarning={setSimilarNameWarning}
           />
